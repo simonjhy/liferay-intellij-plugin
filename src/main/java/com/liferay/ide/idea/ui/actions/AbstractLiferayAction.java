@@ -109,24 +109,18 @@ public abstract class AbstractLiferayAction extends AnAction {
 		return roots[0];
 	}
 
-	protected abstract void handleProcessStarted(
-		@NotNull final String executorIdLocal, @NotNull final ExecutionEnvironment environmentLocal,
-		@NotNull ProcessHandler handler);
+	protected void handleProcessStarted() {
+		_refreshProjectView();
+	}
 
-	protected abstract void handleProcessTerminated(
-		@NotNull final String executorIdLocal, @NotNull final ExecutionEnvironment environmentLocal,
-		@NotNull ProcessHandler handler);
-
-	protected void refreshProjectView() {
-		ProjectView projectView = ProjectView.getInstance(project);
-
-		projectView.refresh();
+	protected void handleProcessTerminated() {
+		_refreshProjectView();
 	}
 
 	protected Project project;
 	protected VirtualFile projectDir;
 
-	private void _perform(final AnActionEvent event) {
+	private void _perform(AnActionEvent event) {
 		RunnerAndConfigurationSettings configurationSetting = doExecute(event);
 
 		RunManager runManager = RunManager.getInstance(project);
@@ -150,20 +144,26 @@ public abstract class AbstractLiferayAction extends AnAction {
 			new ExecutionListener() {
 
 				public void processStarted(
-					@NotNull final String executorIdLocal, @NotNull final ExecutionEnvironment environmentLocal,
-					@NotNull final ProcessHandler handler) {
+					@NotNull String executorIdLocal, @NotNull ExecutionEnvironment environmentLocal,
+					@NotNull ProcessHandler handler) {
 
-					handleProcessStarted(executorIdLocal, environmentLocal, handler);
+					handleProcessStarted();
 				}
 
 				public void processTerminated(
 					@NotNull String executorIdLocal, @NotNull ExecutionEnvironment environmentLocal,
 					@NotNull ProcessHandler handler, int exitCode) {
 
-					handleProcessTerminated(executorIdLocal, environmentLocal, handler);
+					handleProcessTerminated();
 				}
 
 			});
+	}
+
+	private void _refreshProjectView() {
+		ProjectView projectView = ProjectView.getInstance(project);
+
+		projectView.refresh();
 	}
 
 }

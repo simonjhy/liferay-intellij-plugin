@@ -38,6 +38,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -94,6 +95,10 @@ public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 	public boolean isEnabledAndVisible(AnActionEvent event) {
 		Project project = event.getProject();
 
+		if (project == null) {
+			return false;
+		}
+
 		VirtualFile virtualFile = getVirtualFile(event);
 
 		if (virtualFile == null) {
@@ -115,6 +120,10 @@ public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 	}
 
 	private List<Path> _getBndPaths() {
+		if ((projectDir == null) || (projectDir.getCanonicalPath() == null)) {
+			return Collections.emptyList();
+		}
+
 		File file = new File(projectDir.getCanonicalPath());
 
 		File bndFile = new File(file, "bnd.bnd");
@@ -128,7 +137,7 @@ public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 					new SimpleFileVisitor<Path>() {
 
 						@Override
-						public FileVisitResult postVisitDirectory(Path dir, IOException e) throws IOException {
+						public FileVisitResult postVisitDirectory(Path dir, IOException e) {
 							if (new File(dir.toFile(), "bnd.bnd").exists()) {
 								return FileVisitResult.SKIP_SUBTREE;
 							}
@@ -137,7 +146,7 @@ public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 						}
 
 						@Override
-						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
 							if (file.endsWith("bnd.bnd")) {
 								bndFiles.add(file);
 

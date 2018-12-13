@@ -34,6 +34,10 @@ public class LiferayActionGroup extends DefaultActionGroup {
 
 		Project project = event.getProject();
 
+		if (project == null) {
+			return;
+		}
+
 		DumbService dumbService = DumbService.getInstance(project);
 
 		if (dumbService.isDumb()) {
