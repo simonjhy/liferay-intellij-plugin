@@ -227,7 +227,6 @@ public class LiferayWorkspaceUtil {
 		return false;
 	}
 
-	@SuppressWarnings("deprecation")
 	public static boolean isValidMavenWorkspaceLocation(Project project) {
 		if (project == null) {
 			return false;
