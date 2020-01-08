@@ -38,12 +38,26 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.liferay.ide.idea.util.FileUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
 import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Dominik Marks
  * @author Joye Luo
  * @author Charles Wu
+ * @author Ethan Sun
  */
 public class LiferayProjectComponent implements ProjectComponent {
 
@@ -64,6 +78,18 @@ public class LiferayProjectComponent implements ProjectComponent {
 			public void moduleAdded(@NotNull Project project, @NotNull Module module) {
 				if (LiferayWorkspaceSupport.isValidWorkspaceLocation(project)) {
 					_addWebRoot(module);
+				}
+			}
+
+			@Override
+			public void moduleRemoved(@NotNull Project project, @NotNull Module module) {
+				if (LiferayWorkspaceSupport.isValidWorkspaceLocation(project)) {
+					try {
+						_removeModuleFromPom(module);
+					}
+					catch (IOException ioe) {
+						ioe.printStackTrace();
+					}
 				}
 			}
 
@@ -138,6 +164,37 @@ public class LiferayProjectComponent implements ProjectComponent {
 					}
 				}
 			}
+		}
+	}
+
+	private void _removeModuleFromPom(Module module) throws IOException {
+		Project project = module.getProject();
+
+		String rootPath = project.getBasePath();
+
+		String pomPath = rootPath + "/modules/pom.xml";
+
+		File file = new File(pomPath);
+
+		Model model = null;
+
+		MavenXpp3Reader reader = new MavenXpp3Reader();
+
+		try (InputStream fileInputStream = new FileInputStream(file)) {
+			model = reader.read(fileInputStream, true);
+
+			model.removeModule(module.getName());
+		}
+		catch (XmlPullParserException xppe) {
+			xppe.printStackTrace();
+		}
+
+		MavenXpp3Writer writer = new MavenXpp3Writer();
+
+		try (OutputStream outputStream = new FileOutputStream(file)) {
+			assert model != null;
+
+			writer.write(outputStream, model);
 		}
 	}
 
