@@ -26,6 +26,10 @@ import com.intellij.javaee.web.facet.WebFacetType;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.ProjectComponent;
+import com.intellij.openapi.externalSystem.service.notification.ExternalSystemNotificationManager;
+import com.intellij.openapi.externalSystem.service.notification.NotificationCategory;
+import com.intellij.openapi.externalSystem.service.notification.NotificationData;
+import com.intellij.openapi.externalSystem.service.notification.NotificationSource;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.ModuleListener;
 import com.intellij.openapi.project.Project;
@@ -38,12 +42,29 @@ import com.intellij.util.messages.MessageBusConnection;
 import com.liferay.ide.idea.util.FileUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.apache.maven.model.io.xpp3.MavenXpp3Writer;
+
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.idea.maven.project.MavenProject;
+import org.jetbrains.idea.maven.project.MavenProjectsManager;
+import org.jetbrains.plugins.gradle.util.GradleConstants;
 
 /**
  * @author Dominik Marks
  * @author Joye Luo
  * @author Charles Wu
+ * @author Ethan Sun
  */
 public class LiferayProjectComponent implements ProjectComponent {
 
@@ -64,6 +85,27 @@ public class LiferayProjectComponent implements ProjectComponent {
 			public void moduleAdded(@NotNull Project project, @NotNull Module module) {
 				if (LiferayWorkspaceSupport.isValidWorkspaceLocation(project)) {
 					_addWebRoot(module);
+				}
+			}
+
+			@Override
+			public void moduleRemoved(@NotNull Project project, @NotNull Module module) {
+				if (LiferayWorkspaceSupport.isValidWorkspaceLocation(project)) {
+					try {
+						_removeModuleFromPom(module);
+					}
+					catch (IOException ioe) {
+						NotificationData notificationData = new NotificationData(
+							"<b>File Not Found</b>", "<i>pom.xml is inexistence</i> \n" + ioe.getMessage(),
+							NotificationCategory.ERROR, NotificationSource.TASK_EXECUTION);
+
+						notificationData.setBalloonNotification(true);
+
+						ExternalSystemNotificationManager externalSystemNotificationManager =
+							ExternalSystemNotificationManager.getInstance(module.getProject());
+
+						externalSystemNotificationManager.showNotification(GradleConstants.SYSTEM_ID, notificationData);
+					}
 				}
 			}
 
@@ -138,6 +180,48 @@ public class LiferayProjectComponent implements ProjectComponent {
 					}
 				}
 			}
+		}
+	}
+
+	private void _removeModuleFromPom(Module module) throws IOException {
+		MavenProjectsManager mavenProjectsManager = MavenProjectsManager.getInstance(module.getProject());
+
+		MavenProject mavenModule = mavenProjectsManager.findProject(module);
+
+		MavenProject mavenParentModule = mavenProjectsManager.findProject(mavenModule.getParentId());
+
+		String pomPath = mavenParentModule.getPath();
+
+		File file = new File(pomPath);
+
+		Model model = null;
+
+		MavenXpp3Reader reader = new MavenXpp3Reader();
+
+		try (InputStream fileInputStream = new FileInputStream(file)) {
+			model = reader.read(fileInputStream, true);
+
+			model.removeModule(module.getName());
+		}
+		catch (XmlPullParserException xppe) {
+			NotificationData notificationData = new NotificationData(
+				"<b>Parse Error</b>", "<i>Read pom.xml Failed</i> \n" + xppe.getMessage(), NotificationCategory.ERROR,
+				NotificationSource.TASK_EXECUTION);
+
+			notificationData.setBalloonNotification(true);
+
+			ExternalSystemNotificationManager externalSystemNotificationManager =
+				ExternalSystemNotificationManager.getInstance(module.getProject());
+
+			externalSystemNotificationManager.showNotification(GradleConstants.SYSTEM_ID, notificationData);
+		}
+
+		MavenXpp3Writer writer = new MavenXpp3Writer();
+
+		try (OutputStream outputStream = new FileOutputStream(file)) {
+			assert model != null;
+
+			writer.write(outputStream, model);
 		}
 	}
 
