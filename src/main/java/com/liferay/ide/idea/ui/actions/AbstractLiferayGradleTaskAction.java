@@ -52,6 +52,7 @@ import org.jetbrains.plugins.gradle.util.GradleConstants;
 /**
  * @author Andy Wu
  * @author Simon Jiang
+ * @author Ethan Sun
  */
 public abstract class AbstractLiferayGradleTaskAction extends AbstractLiferayAction {
 
@@ -70,10 +71,33 @@ public abstract class AbstractLiferayGradleTaskAction extends AbstractLiferayAct
 		return false;
 	}
 
-	protected RunnerAndConfigurationSettings doExecute(AnActionEvent anActionEvent) {
+	@Override
+	protected void doExecute() {
+		ExternalSystemUtil.runTask(
+			_taskExecutionInfo.getSettings(), _taskExecutionInfo.getExecutorId(), _project, GradleConstants.SYSTEM_ID,
+			new TaskCallback() {
+
+				@Override
+				public void onFailure() {
+				}
+
+				@Override
+				public void onSuccess() {
+					afterTask(_projectDir);
+				}
+
+			},
+			getProgressMode(), true);
+	}
+
+	protected RunnerAndConfigurationSettings getRunnerSettings(AnActionEvent anActionEvent) {
 		Project project = anActionEvent.getRequiredData(CommonDataKeys.PROJECT);
 
+		_project = project;
+
 		final VirtualFile projectDir = getWorkingDirectory(anActionEvent);
+
+		_projectDir = projectDir;
 
 		final String workingDirectory = projectDir.getCanonicalPath();
 
@@ -87,21 +111,7 @@ public abstract class AbstractLiferayGradleTaskAction extends AbstractLiferayAct
 			return null;
 		}
 
-		ExternalSystemUtil.runTask(
-			taskExecutionInfo.getSettings(), taskExecutionInfo.getExecutorId(), project, GradleConstants.SYSTEM_ID,
-			new TaskCallback() {
-
-				@Override
-				public void onFailure() {
-				}
-
-				@Override
-				public void onSuccess() {
-					afterTask(projectDir);
-				}
-
-			},
-			getProgressMode(), true);
+		_taskExecutionInfo = taskExecutionInfo;
 
 		RunnerAndConfigurationSettings configuration =
 			ExternalSystemUtil.createExternalSystemRunnerAndConfigurationSettings(
@@ -194,6 +204,9 @@ public abstract class AbstractLiferayGradleTaskAction extends AbstractLiferayAct
 		}
 	}
 
+	private Project _project;
+	private VirtualFile _projectDir;
+	private ExternalTaskExecutionInfo _taskExecutionInfo;
 	private final String _taskName;
 
 }

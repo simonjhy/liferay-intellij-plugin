@@ -69,12 +69,15 @@ public abstract class AbstractLiferayAction extends AnAction {
 		eventPresentation.setEnabledAndVisible(isEnabledAndVisible(anActionEvent));
 	}
 
-	@Nullable
-	protected abstract RunnerAndConfigurationSettings doExecute(AnActionEvent anActionEvent);
+	protected void doExecute() {
+	}
 
 	protected ProgressExecutionMode getProgressMode() {
 		return ProgressExecutionMode.IN_BACKGROUND_ASYNC;
 	}
+
+	@Nullable
+	protected abstract RunnerAndConfigurationSettings getRunnerSettings(AnActionEvent anActionEvent);
 
 	@Nullable
 	protected VirtualFile getVirtualFile(AnActionEvent anActionEvent) {
@@ -114,7 +117,7 @@ public abstract class AbstractLiferayAction extends AnAction {
 	}
 
 	private void _perform(AnActionEvent anActionEvent, Project project) {
-		RunnerAndConfigurationSettings runnerAndConfigurationSettings = doExecute(anActionEvent);
+		RunnerAndConfigurationSettings runnerAndConfigurationSettings = getRunnerSettings(anActionEvent);
 
 		RunManager runManager = RunManager.getInstance(project);
 
@@ -127,6 +130,8 @@ public abstract class AbstractLiferayAction extends AnAction {
 		else {
 			runManager.setSelectedConfiguration(existingConfigurationSettings);
 		}
+
+		doExecute();
 
 		MessageBus messageBus = project.getMessageBus();
 

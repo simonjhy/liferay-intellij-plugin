@@ -14,12 +14,18 @@
 
 package com.liferay.ide.idea.ui.actions;
 
+import com.intellij.execution.RunnerAndConfigurationSettings;
+import com.intellij.execution.process.ProcessHandler;
+import com.intellij.execution.ui.RunContentDescriptor;
+import com.intellij.execution.ui.RunContentManager;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.ui.content.Content;
+import com.intellij.ui.content.ContentManager;
 
 import com.liferay.ide.idea.server.gogo.GogoTelnetClient;
 import com.liferay.ide.idea.util.GradleUtil;
@@ -39,11 +45,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
  * @author Terry Jia
  * @author Simon Jiang
+ * @author Ethan Sun
  */
 public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 
@@ -101,6 +109,49 @@ public class WatchGradleModuleAction extends AbstractLiferayGradleTaskAction {
 	@Override
 	protected ProgressExecutionMode getProgressMode() {
 		return ProgressExecutionMode.NO_PROGRESS_ASYNC;
+	}
+
+	@Override
+	protected RunnerAndConfigurationSettings getRunnerSettings(AnActionEvent anActionEvent) {
+		Project project = anActionEvent.getProject();
+
+		RunnerAndConfigurationSettings runnerAndConfigurationSettings = super.getRunnerSettings(anActionEvent);
+
+		String selectedConfigurationId = runnerAndConfigurationSettings.getUniqueID();
+
+		RunContentManager runContentManager = RunContentManager.getInstance(project);
+
+		List<RunContentDescriptor> allDescriptors = runContentManager.getAllDescriptors();
+
+		allDescriptors.stream(
+		).filter(
+			descriptor -> descriptor.getDisplayName(
+			).contains(
+				"[watch]"
+			)
+		).forEach(
+			descriptor -> {
+				String displayName = descriptor.getDisplayName();
+
+				ProcessHandler processHandler = descriptor.getProcessHandler();
+
+				boolean processTerminated = processHandler.isProcessTerminated();
+
+				if ((Objects.equals(selectedConfigurationId, "Gradle." + displayName) && !processTerminated) ||
+					Objects.equals(selectedConfigurationId, "Gradle." + project.getName() + " [watch]")) {
+
+					processHandler.destroyProcess();
+
+					Content content = descriptor.getAttachedContent();
+
+					ContentManager contentManager = content.getManager();
+
+					contentManager.removeContent(content, true);
+				}
+			}
+		);
+
+		return runnerAndConfigurationSettings;
 	}
 
 	@Override
