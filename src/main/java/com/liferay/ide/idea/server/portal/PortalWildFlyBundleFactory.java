@@ -52,7 +52,7 @@ public class PortalWildFlyBundleFactory extends AbstractPortalBundleFactory {
 				new File[] {new File(path.toString(), "modules")}, "org.jboss.as.product", "wildfly-full/dir/META-INF",
 				JBOSS_RELEASE_VERSION);
 
-			if ((versions != null) && (versions.startsWith("10.") || versions.startsWith("11."))) {
+			if (versions != null) {
 				return true;
 			}
 
