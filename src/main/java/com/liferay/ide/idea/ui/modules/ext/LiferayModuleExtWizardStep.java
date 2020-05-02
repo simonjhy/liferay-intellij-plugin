@@ -31,6 +31,7 @@ import com.intellij.util.ui.UIUtil;
 import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.GradleUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
+import com.liferay.ide.idea.util.ListUtil;
 
 import java.awt.event.ItemEvent;
 
@@ -232,7 +233,10 @@ public class LiferayModuleExtWizardStep extends ModuleWizardStep implements Life
 
 						String[] dependencyValues = dependencyString.split(":");
 
-						if (dependencyValues[0].equals("com.liferay")) {
+						if (ListUtil.isNotEmpty(dependencyValues) && (dependencyValues.length > 2) &&
+							dependencyValues[0].equals("com.liferay") &&
+							!dependencyValues[2].contains("LIFERAY-PATCHED")) {
+
 							SwingUtilities.invokeLater(
 								new Runnable() {
 
