@@ -57,6 +57,10 @@ public class CoreUtil {
 		return s1.compareTo(v2.getQualifier());
 	}
 
+	public static boolean isNotNullOrEmpty(String val) {
+		return !isNullOrEmpty(val);
+	}
+
 	public static boolean isNullOrEmpty(Object[] array) {
 		if ((array == null) || (array.length == 0)) {
 			return true;

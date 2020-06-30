@@ -50,6 +50,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Terry Jia
  * @author Joye Luo
  * @author Simon Jiang
+ * @author Seiphon Wang
  */
 @SuppressWarnings("rawtypes")
 public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
@@ -113,9 +114,7 @@ public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
 
 			});
 
-		if (_liferayProjectType.equals(LiferayProjectType.LIFERAY_GRADLE_WORKSPACE)) {
-			settingsStep.addSettingsField("Target platform:", targetPlatformComboBox);
-		}
+		settingsStep.addSettingsField("Target platform:", targetPlatformComboBox);
 
 		liferayVersionComboBox.addActionListener(
 			e -> {

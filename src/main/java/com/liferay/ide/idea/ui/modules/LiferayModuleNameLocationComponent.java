@@ -14,6 +14,8 @@
 
 package com.liferay.ide.idea.ui.modules;
 
+import static com.intellij.openapi.ui.Messages.showErrorDialog;
+
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.highlighter.ModuleFileType;
 import com.intellij.ide.util.projectWizard.AbstractModuleBuilder;
@@ -23,15 +25,16 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectType;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.Comparing;
 import com.intellij.openapi.util.io.FileUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.DocumentAdapter;
 
+import com.liferay.ide.idea.core.LiferayProjectTypeService;
 import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.ui.modules.ext.LiferayModuleExtBuilder;
-import com.liferay.ide.idea.ui.modules.springmvcportlet.SpringMVCPortletModuleBuilder;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
 
 import java.io.File;
@@ -48,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Terry Jia
+ * @author Seiphon Wang
  */
 public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSupport {
 
@@ -104,7 +108,7 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 					String moduleName = _getModuleName();
 
 					if ((path.length() > 0) && !Comparing.strEqual(moduleName, namePathComponent.getNameValue())) {
-						path += "/" + _getTargetFolderName() + "/" + moduleName;
+						path += "/" + _getTargetLocation();
 					}
 
 					if (!_contentRootChangedByUser) {
@@ -234,7 +238,7 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 
 			setModuleName(moduleName);
 
-			String contentRoot = baseDirPath + "/" + _getTargetFolderName() + "/" + moduleName;
+			String contentRoot = baseDirPath + "/" + _getTargetLocation();
 
 			_setModuleContentRoot(contentRoot);
 			_setImlFileLocation(contentRoot);
@@ -248,6 +252,31 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 
 		if ((builder != null) && !builder.validateModuleName(_getModuleName())) {
 			return false;
+		}
+
+		LiferayModuleBuilder liferayModuleBuilder = null;
+
+		if (builder instanceof LiferayModuleBuilder) {
+			liferayModuleBuilder = (LiferayModuleBuilder)builder;
+
+			String templateType = liferayModuleBuilder.getType();
+
+			if (templateType.startsWith("js")) {
+				showErrorDialog(
+					"Not support to create this type of module. Create it using the CLI first and then import here",
+					"Unsupported Module Type");
+
+				return false;
+			}
+			else if (Objects.equals("war-core-ext", templateType)) {
+				String buildType = _getProjectBuildType();
+
+				if (buildType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
+					showErrorDialog("Not support to create maven war-core-ext project.", "Unsupported Module Type");
+
+					return false;
+				}
+			}
 		}
 
 		if (!_validateModulePaths()) {
@@ -287,8 +316,21 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 		return moduleName.trim();
 	}
 
-	private String _getTargetFolderName() {
+	private String _getProjectBuildType() {
+		ProjectType liferayProjectType = LiferayProjectTypeService.getProjectType(_context.getProject());
+
+		return liferayProjectType.getId();
+	}
+
+	private String _getTargetLocation() {
+		String buildType = _getProjectBuildType();
+
+		if (buildType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
+			return _getModuleName();
+		}
+
 		AbstractModuleBuilder builder = getModuleBuilder();
+
 		LiferayModuleBuilder liferayModuleBuilder = null;
 
 		Project project = _context.getProject();
@@ -303,28 +345,45 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 			targetFolderName = getWorkspaceProperty(
 				project, WorkspaceConstants.EXT_DIR_PROPERTY, WorkspaceConstants.EXT_DIR_DEFAULT);
 		}
-		else if (builder instanceof SpringMVCPortletModuleBuilder) {
-			targetFolderName = getWorkspaceProperty(
-				project, WorkspaceConstants.WARS_DIR_PROPERTY, WorkspaceConstants.WARS_DIR_DEFAULT);
-		}
 
 		if (liferayModuleBuilder != null) {
 			String templateType = liferayModuleBuilder.getType();
 
-			if (Objects.equals("theme", templateType) || Objects.equals("layout-template", templateType) ||
-				Objects.equals("spring-mvc-portlet", templateType) || Objects.equals("war-hook", templateType) ||
-				Objects.equals("war-mvc-portlet", templateType)) {
+			boolean warProject = false;
 
-				targetFolderName = getWorkspaceProperty(
-					project, WorkspaceConstants.WARS_DIR_PROPERTY, WorkspaceConstants.WARS_DIR_DEFAULT);
+			for (String projectType : _WAR_TYPE_PROJECT) {
+				if (projectType.equals(templateType)) {
+					warProject = true;
+
+					break;
+				}
+			}
+
+			if (warProject) {
+				String[] defualtWarDirs = getWorkspaceWarDirs(project);
+
+				if (Objects.nonNull(defualtWarDirs)) {
+					return defualtWarDirs[0] + "/" + _getModuleName();
+				}
+
+				return _getModuleName();
 			}
 			else if (Objects.equals("war-core-ext", templateType)) {
 				targetFolderName = getWorkspaceProperty(
 					project, WorkspaceConstants.EXT_DIR_PROPERTY, WorkspaceConstants.EXT_DIR_DEFAULT);
 			}
+			else {
+				String[] defaultModuleDirs = getWorkspaceModuleDirs(project);
+
+				if (Objects.nonNull(defaultModuleDirs)) {
+					return defaultModuleDirs[0] + "/" + _getModuleName();
+				}
+
+				return _getModuleName();
+			}
 		}
 
-		return targetFolderName;
+		return targetFolderName + "/" + _getModuleName();
 	}
 
 	private void _setImlFileLocation(String path) {
@@ -390,6 +449,8 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 
 		return true;
 	}
+
+	private static final String[] _WAR_TYPE_PROJECT = {"layout-template", "theme", "war-hook", "war-mvc-portlet"};
 
 	private boolean _contentRootChangedByUser = false;
 	private boolean _contentRootDocListenerEnabled = true;
