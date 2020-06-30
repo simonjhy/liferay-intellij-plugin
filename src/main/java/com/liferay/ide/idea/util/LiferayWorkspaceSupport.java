@@ -47,6 +47,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -70,6 +71,7 @@ import org.osgi.framework.Version;
  * @author Terry Jia
  * @author Simon Jiang
  * @author Ethan Sun
+ * @author Seiphon Wang
  */
 public interface LiferayWorkspaceSupport {
 
@@ -212,6 +214,37 @@ public interface LiferayWorkspaceSupport {
 		}
 
 		return "";
+	}
+
+	public default String getGradleWorkspacePluginVersion(Project project) {
+		File settingsGradleFile = new File(project.getBasePath(), GradleConstants.SETTINGS_FILE_NAME);
+
+		GradleDependencyUpdater gradleDependencyUpdater = null;
+
+		try {
+			gradleDependencyUpdater = new GradleDependencyUpdater(settingsGradleFile);
+		}
+		catch (IOException ioe) {
+		}
+
+		return Optional.ofNullable(
+			gradleDependencyUpdater
+		).flatMap(
+			buildScript -> {
+				List<GradleDependency> dependencies = buildScript.getDependenciesByName("classpath");
+
+				return dependencies.stream(
+				).filter(
+					dependency -> Objects.equals("com.liferay", dependency.getGroup())
+				).filter(
+					dependency -> Objects.equals("com.liferay.gradle.plugins.workspace", dependency.getName())
+				).filter(
+					dependency -> CoreUtil.isNotNullOrEmpty(dependency.getVersion())
+				).map(
+					dependency -> dependency.getVersion()
+				).findFirst();
+			}
+		).get();
 	}
 
 	public default String getHomeDir(String location) {
@@ -458,6 +491,29 @@ public interface LiferayWorkspaceSupport {
 		return getGradleProperty(location, WorkspaceConstants.TARGET_PLATFORM_VERSION_PROPERTY, null);
 	}
 
+	public default String[] getWorkspaceModuleDirs(Project project) {
+		String workspacePluginVersion = getGradleWorkspacePluginVersion(project);
+
+		if (CoreUtil.compareVersions(Version.parseVersion(workspacePluginVersion), new Version("2.5.0")) < 0) {
+			String moduleDirs = getWorkspaceProperty(project, WorkspaceConstants.MODULES_DIR_PROPERTY, "");
+
+			if (CoreUtil.isNullOrEmpty(moduleDirs)) {
+				return new String[] {"modules"};
+			}
+
+			return moduleDirs.split(",");
+		}
+
+		String modulesDir = getWorkspaceProperty(
+			project, WorkspaceConstants.MODULES_DIR_PROPERTY, WorkspaceConstants.MODULES_DIR_DEFAULT);
+
+		if (StringUtil.equals(modulesDir, "*")) {
+			return null;
+		}
+
+		return modulesDir.split(",");
+	}
+
 	@NotNull
 	public default String getWorkspaceProperty(Project project, String key, String defaultValue) {
 		String retval = null;
@@ -475,6 +531,35 @@ public interface LiferayWorkspaceSupport {
 		}
 
 		return retval;
+	}
+
+	public default String[] getWorkspaceWarDirs(Project project) {
+		String workspacePluginVersion = getGradleWorkspacePluginVersion(project);
+
+		if (CoreUtil.compareVersions(Version.parseVersion(workspacePluginVersion), new Version("2.5.0")) < 0) {
+			String warDir = getWorkspaceProperty(project, WorkspaceConstants.WARS_DIR_PROPERTY, "");
+
+			if (CoreUtil.isNullOrEmpty(warDir)) {
+				return new String[] {"wars"};
+			}
+
+			return warDir.split(",");
+		}
+
+		String warDirs = getWorkspaceProperty(project, WorkspaceConstants.WARS_DIR_PROPERTY, "");
+
+		if (CoreUtil.isNotNullOrEmpty(warDirs)) {
+			return warDirs.split(",");
+		}
+
+		String moduleDir = getWorkspaceProperty(
+			project, WorkspaceConstants.MODULES_DIR_PROPERTY, WorkspaceConstants.MODULES_DIR_DEFAULT);
+
+		if (StringUtil.equals(moduleDir, "*")) {
+			return null;
+		}
+
+		return moduleDir.split(",");
 	}
 
 	public final String BUILD_GRADLE_FILE_NAME = "build.gradle";
