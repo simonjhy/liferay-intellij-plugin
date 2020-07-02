@@ -32,6 +32,8 @@ import com.intellij.ide.util.projectWizard.ModuleWizardStep;
 import com.intellij.ide.util.projectWizard.WizardContext;
 import com.intellij.ide.wizard.CommitStepException;
 import com.intellij.openapi.Disposable;
+import com.intellij.openapi.application.Application;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleType;
@@ -62,6 +64,7 @@ import com.intellij.util.containers.MultiMap;
 import com.intellij.util.ui.JBUI;
 import com.intellij.util.ui.UIUtil;
 
+import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.ui.modules.ext.LiferayModuleExtBuilder;
 import com.liferay.ide.idea.ui.modules.springmvcportlet.SpringMVCPortletModuleBuilder;
 import com.liferay.ide.idea.util.CoreUtil;
@@ -589,6 +592,37 @@ public class LiferayProjectTypeStep extends ModuleWizardStep implements Disposab
 		String card = builder.getBuilderId();
 
 		if (!_customSteps.containsKey(card)) {
+			if (_customSteps.size() < 1) {
+				Project project = Objects.requireNonNull(_context.getProject());
+
+				String projectBasePath = project.getBasePath();
+
+				if (LiferayWorkspaceSupport.isValidGradleWorkspaceLocation(projectBasePath)) {
+					String workspaceProductKey = getGradleProperty(
+						projectBasePath, WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, null);
+
+					Map<String, ProductInfo> productInfosMap = LiferayWorkspaceSupport.getProductInfos(project);
+
+					if ((productInfosMap != null) && !productInfosMap.isEmpty()) {
+						Set<String> productInfosSet = productInfosMap.keySet();
+
+						if (CoreUtil.isNullOrEmpty(workspaceProductKey) ||
+							!productInfosSet.contains(workspaceProductKey)) {
+
+							Application application = ApplicationManager.getApplication();
+
+							application.invokeAndWait(
+								() -> {
+									LiferayWorkspaceProductTip liferayWorkspaceProductTip =
+										new LiferayWorkspaceProductTip(project);
+
+									liferayWorkspaceProductTip.showAndGet();
+								});
+						}
+					}
+				}
+			}
+
 			ModuleWizardStep step = builder.getCustomOptionsStep(_context, this);
 
 			if (step == null) {

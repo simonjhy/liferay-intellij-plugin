@@ -16,6 +16,7 @@ package com.liferay.ide.idea.ui.modules.springmvcportlet;
 
 import com.intellij.ide.util.projectWizard.ModuleWizardStep;
 import com.intellij.ide.util.projectWizard.WizardContext;
+import com.intellij.openapi.project.Project;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
@@ -25,18 +26,38 @@ import java.util.stream.Stream;
 
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 /**
  * @author Terry Jia
  * @author Simon Jiang
+ * @author Ethan Sun
  */
 public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implements LiferayWorkspaceSupport {
 
 	public SpringMvcPortletModuleWizardStep(WizardContext wizardContext, SpringMVCPortletModuleBuilder builder) {
 		_builder = builder;
+		_project = wizardContext.getProject();
 
-		String liferayVersion = getLiferayVersion(wizardContext.getProject());
+		String liferayVersion = obtainLiferayVersion(_project);
+
+		if (liferayVersion.isEmpty()) {
+			_liferayVersionCombo.removeAllItems();
+
+			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
+				_liferayVersionCombo.addItem(liferayVersionItem);
+			}
+
+			_liferayVersionCombo.setSelectedItem(0);
+		}
+		else {
+			_mainPanel.remove(_liferayVersionLabel);
+
+			_mainPanel.remove(_liferayVersionCombo);
+
+			_mainPanel.repaint();
+		}
 
 		_intializeSpringConfigurationData(liferayVersion);
 
@@ -62,7 +83,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 					_frameworkDependenciesCombo.removeAllItems();
 
 					if (liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[1]) ||
-						liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
+							liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
 
 						_addComboItems(
 							SpringMVCPortletProjectConstants.SPRING_FRAMEWORK_DEPENDENCIES,
@@ -83,6 +104,14 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 		return _mainPanel;
 	}
 
+	public String getLiferayVersion() {
+		if (_liferayVersionCombo.isValid()) {
+			return (String)_liferayVersionCombo.getSelectedItem();
+		}
+
+		return getLiferayVersion(_project);
+	}
+
 	@Override
 	public void updateDataModel() {
 		Map<String, String> frameworkDependeices = SpringMVCPortletProjectConstants.springFrameworkDependeices;
@@ -91,6 +120,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 
 		_builder.setFramework(frameworks.get(_frameworkCombo.getSelectedItem()));
 		_builder.setFrameworkDependencies(frameworkDependeices.get(_frameworkDependenciesCombo.getSelectedItem()));
+		_builder.setLiferayVersion(getLiferayVersion());
 		_builder.setViewType(viewTypes.get(_viewTypeCombo.getSelectedItem()));
 	}
 
@@ -142,7 +172,10 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 	private SpringMVCPortletModuleBuilder _builder;
 	private JComboBox<String> _frameworkCombo;
 	private JComboBox<String> _frameworkDependenciesCombo;
+	private JComboBox<String> _liferayVersionCombo;
+	private JLabel _liferayVersionLabel;
 	private JPanel _mainPanel;
+	private final Project _project;
 	private JComboBox<String> _viewTypeCombo;
 
 }

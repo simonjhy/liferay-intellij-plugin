@@ -28,6 +28,7 @@ import com.intellij.psi.impl.file.PsiDirectoryFactory;
 import com.intellij.ui.ScrollPaneFactory;
 import com.intellij.ui.treeStructure.Tree;
 
+import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.BladeCLI;
 import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.FileUtil;
@@ -49,11 +50,7 @@ import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-import javax.swing.JComponent;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeModel;
@@ -67,6 +64,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * @author Terry Jia
  * @author Simon Jiang
+ * @author Ethan Sun
  */
 public class LiferayModuleWizardStep extends ModuleWizardStep implements LiferayWorkspaceSupport {
 
@@ -162,7 +160,24 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode("root", true);
 
-		String liferayVersion = getLiferayVersion(_project);
+		String liferayVersion = obtainLiferayVersion(_project);
+
+		if (liferayVersion.isEmpty()) {
+			_liferayVersionCombo.removeAllItems();
+
+			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
+				_liferayVersionCombo.addItem(liferayVersionItem);
+			}
+
+			_liferayVersionCombo.setSelectedItem(0);
+		}
+		else {
+			_mainPanel.remove(_liferayVersionLabel);
+
+			_mainPanel.remove(_liferayVersionCombo);
+
+			_mainPanel.repaint();
+		}
 
 		SwingUtilities.invokeLater(
 			() -> {
@@ -207,6 +222,14 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 		return null;
 	}
 
+	public String getLiferayVersion() {
+		if (_liferayVersionCombo.isEnabled()) {
+			return (String)_liferayVersionCombo.getSelectedItem();
+		}
+
+		return null;
+	}
+
 	public String getPackageName() {
 		if (_packageName.isEditable()) {
 			return _packageName.getText();
@@ -240,6 +263,7 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 		_builder.setClassName(getClassName());
 		_builder.setPackageName(getPackageName());
 		_builder.setContributorType(getContributorType());
+		_builder.setLiferayVersion(getLiferayVersion());
 
 		if (getSelectedType().equals("service") || getSelectedType().equals("service-wrapper")) {
 			_builder.setServiceName(getServiceName());
@@ -379,6 +403,8 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 	private LiferayModuleBuilder _builder;
 	private JTextField _className;
 	private JTextField _contributorType;
+	private JComboBox<String> _liferayVersionCombo;
+	private JLabel _liferayVersionLabel;
 	private JPanel _mainPanel;
 	private JTextField _packageName;
 	private final Project _project;
