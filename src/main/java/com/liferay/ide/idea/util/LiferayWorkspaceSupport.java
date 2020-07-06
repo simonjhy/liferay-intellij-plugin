@@ -123,6 +123,9 @@ public interface LiferayWorkspaceSupport {
 
             Collection<DataNode<?>> dataNodes = projectData.getChildren();
 
+			TypeToken<Map<String, ProductInfo>> typeToken = new TypeToken<Map<String, ProductInfo>>() {
+			};
+
             List<LibraryData> libraryData = new ArrayList<>(dataNodes.size());
 
             for (DataNode<?> child : dataNodes) {

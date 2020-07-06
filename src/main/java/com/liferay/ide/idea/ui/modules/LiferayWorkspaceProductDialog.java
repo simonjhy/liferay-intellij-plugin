@@ -21,12 +21,12 @@ import com.intellij.openapi.externalSystem.service.notification.NotificationCate
 import com.intellij.openapi.externalSystem.service.notification.NotificationData;
 import com.intellij.openapi.externalSystem.service.notification.NotificationSource;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
 
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.vfs.VfsUtil;
+import com.intellij.openapi.vfs.VirtualFile;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.BladeCLI;
@@ -46,24 +46,21 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.plugins.gradle.util.GradleConstants;
+
+import javax.swing.*;
 
 /**
  * @author Ethan Sun
  */
 public class LiferayWorkspaceProductDialog extends DialogWrapper {
 
-	protected LiferayWorkspaceProductDialog(@Nullable Project project) {
+	protected LiferayWorkspaceProductDialog(@NotNull Project project) {
 		super(true);
 
 		_project = project;
@@ -115,39 +112,28 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 				try {
 					final String productKey = (String)_productVersionComboBox.getSelectedItem();
 
-					if (Objects.nonNull(_project)) {
-						Path projectPath = Paths.get(Objects.requireNonNull(_project.getBasePath()));
+					Path projectPath = Paths.get(Objects.requireNonNull(_project.getBasePath()));
 
-						Path gradlePropertiesPath = projectPath.resolve("gradle.properties");
+					Path gradlePropertiesPath = projectPath.resolve("gradle.properties");
 
-						File propertyFile = gradlePropertiesPath.toFile();
+					File propertyFile = gradlePropertiesPath.toFile();
 
-						if (FileUtil.notExists(propertyFile)) {
-							throw new FileNotFoundException();
-						}
-
-						PropertiesConfiguration config = new PropertiesConfiguration(propertyFile);
-
-						config.setProperty(WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, productKey);
-
-						config.save();
-
-						ProjectRootManager projectRootManager = ProjectRootManager.getInstance(_project);
-
-						VfsUtil.markDirtyAndRefresh(true, true, true, projectRootManager.getContentRoots());
+					if (FileUtil.notExists(propertyFile)) {
+						throw new FileNotFoundException();
 					}
+
+					PropertiesConfiguration config = new PropertiesConfiguration(propertyFile);
+
+					config.setProperty(WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, productKey);
+
+					config.save();
+
+					VirtualFile gradlePropeerties = VfsUtil.findFile(gradlePropertiesPath, false);
+
+					VfsUtil.markDirtyAndRefresh(true, true, true, gradlePropeerties);
 				}
 				catch (ConfigurationException | FileNotFoundException e) {
-					Class<?> clazz = e.getClass();
-
-					String exceptionMessage = "";
-
-					if (clazz.isInstance(FileNotFoundException.class)) {
-						exceptionMessage = "<b>File gradle.properties does not exist.</b>";
-					}
-					else if (clazz.isInstance(ConfigurationException.class)) {
-						exceptionMessage = "<b>File gradle.properties is not writable</b>";
-					}
+					String exceptionMessage = "<b>Faild to save liferay.workspace.product in gradle.properties.</b>";
 
 					NotificationData notificationData = new NotificationData(
 						exceptionMessage, "<i>" + _project.getName() + "</i> \n" + e.getMessage(),
@@ -204,6 +190,8 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 	private final Application _application = ApplicationManager.getApplication();
 	private JComboBox<String> _productVersionComboBox;
 	private final List<String> _productVersions = new CopyOnWriteArrayList<>();
+
+	@NotNull
 	private final Project _project;
 
 }

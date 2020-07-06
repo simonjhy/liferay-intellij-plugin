@@ -17,10 +17,8 @@ package com.liferay.ide.idea.ui.modules;
 import com.intellij.openapi.application.Application;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.ui.components.JBLabel;
 
 import com.liferay.ide.idea.core.MessagesBundle;
@@ -40,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public class LiferayWorkspaceProductTip extends DialogWrapper {
 
-	public LiferayWorkspaceProductTip(@Nullable Project project) {
+	public LiferayWorkspaceProductTip(@NotNull Project project) {
 		super(true);
 
 		_project = project;
@@ -80,11 +78,7 @@ public class LiferayWorkspaceProductTip extends DialogWrapper {
 				LiferayWorkspaceProductDialog liferayWorkspaceProductDialog = new LiferayWorkspaceProductDialog(
 					_project);
 
-				if (liferayWorkspaceProductDialog.showAndGet()) {
-					ProjectRootManager projectRootManager = ProjectRootManager.getInstance(_project);
-
-					VfsUtil.markDirtyAndRefresh(false, true, true, projectRootManager.getContentRoots());
-				}
+				liferayWorkspaceProductDialog.show();
 			});
 	}
 
@@ -104,6 +98,7 @@ public class LiferayWorkspaceProductTip extends DialogWrapper {
 		return super.getOKAction();
 	}
 
+	@NotNull
 	private Project _project;
 
 }
