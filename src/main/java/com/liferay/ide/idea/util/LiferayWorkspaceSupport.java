@@ -89,7 +89,7 @@ public interface LiferayWorkspaceSupport {
 		try (JsonReader jsonReader = new JsonReader(Files.newBufferedReader(_workspaceCacheFile.toPath()))) {
 			Gson gson = new Gson();
 
-			TypeToken<Map<String, ProductInfo>> typeToken = new TypeToken<>() {
+			TypeToken<Map<String, ProductInfo>> typeToken = new TypeToken<Map<String, ProductInfo>>() {
 			};
 
 			return gson.fromJson(jsonReader, typeToken.getType());
@@ -547,7 +547,7 @@ public interface LiferayWorkspaceSupport {
 			if (CoreUtil.isNullOrEmpty(workspaceProductKey)) {
 				Application application = ApplicationManager.getApplication();
 
-				application.invokeAndWait(
+				application.runWriteAction(
 					() -> {
 						LiferayWorkspaceProductTip liferayWorkspaceProductTip = new LiferayWorkspaceProductTip(project);
 

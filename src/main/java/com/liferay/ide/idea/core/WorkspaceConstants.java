@@ -59,7 +59,7 @@ public class WorkspaceConstants {
 	public static final String TARGET_PLATFORM_VERSION_PROPERTY = "liferay.workspace.target.platform.version";
 
 	public static final String[] TARGET_PLATFORM_VERSIONS = {
-		"7.3.0", "7.2.1", "7.2.0", "7.1.3", "7.1.2", "7.1.1", "7.1.0", "7.0.6"
+		"7.3.2", "7.3.1", "7.3.0", "7.2.1", "7.2.0", "7.1.3", "7.1.2", "7.1.1", "7.1.0", "7.0.6"
 	};
 
 	public static final String THEMES_DIR_DEFAULT = "themes";
@@ -69,8 +69,6 @@ public class WorkspaceConstants {
 	public static final String WARS_DIR_DEFAULT = "wars";
 
 	public static final String WARS_DIR_PROPERTY = "liferay.workspace.wars.dir";
-
-	public static final String WIZARD_LIFERAY_VERSION_FIELD = "selected.liferay.version";
 
 	public static final String WORKSPACE_BOM_VERSION = "liferay.bom.version";
 

@@ -14,7 +14,6 @@
 
 package com.liferay.ide.idea.ui.modules;
 
-import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.ide.util.projectWizard.ModuleBuilder;
 import com.intellij.ide.util.projectWizard.ModuleWizardStep;
 import com.intellij.ide.util.projectWizard.SdkSettingsStep;
@@ -250,10 +249,6 @@ public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
 			sb.append("-b ");
 			sb.append("maven");
 		}
-
-		PropertiesComponent component = PropertiesComponent.getInstance(project);
-
-		component.setValue(WorkspaceConstants.WIZARD_LIFERAY_VERSION_FIELD, _liferayVersion);
 
 		BladeCLI.execute(sb.toString());
 
