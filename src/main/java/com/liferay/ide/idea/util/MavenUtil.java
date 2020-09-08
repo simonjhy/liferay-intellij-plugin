@@ -17,6 +17,7 @@ package com.liferay.ide.idea.util;
 import com.intellij.openapi.project.Project;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,10 +34,11 @@ import org.jetbrains.idea.maven.project.MavenProjectsManager;
 
 /**
  * @author Ethan Sun
+ * @author Seiphon Wang
  */
 public class MavenUtil {
 
-	public static Model getMavenModel(File pomFile) throws IOException, XmlPullParserException {
+	public static Model getMavenModel(File pomFile) throws FileNotFoundException, IOException, XmlPullParserException {
 		MavenXpp3Reader mavenReader = new MavenXpp3Reader();
 
 		mavenReader.setAddDefaultEntities(true);

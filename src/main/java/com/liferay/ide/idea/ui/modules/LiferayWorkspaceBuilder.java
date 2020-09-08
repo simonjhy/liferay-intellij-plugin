@@ -32,7 +32,9 @@ import com.intellij.openapi.util.Condition;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.BladeCLI;
+import com.liferay.ide.idea.util.FileUtil;
 import com.liferay.ide.idea.util.ListUtil;
+import com.liferay.ide.idea.util.MavenUtil;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -41,6 +43,7 @@ import java.io.File;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import javax.swing.JCheckBox;
@@ -49,6 +52,7 @@ import javax.swing.JLabel;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.maven.model.Model;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +62,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Joye Luo
  * @author Simon Jiang
  * @author Ethan Sun
+ * @author Seiphon Wang
  */
 @SuppressWarnings("rawtypes")
 public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
@@ -113,65 +118,63 @@ public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
 			settingsStep.addSettingsField("Show All Product Versions", showAllProductVersionCheckBox);
 		}
 
-		JComboBox liferayVersionComboBox = new ComboBox<>();
-
-		for (String liferayVersion : WorkspaceConstants.LIFERAY_VERSIONS) {
-			liferayVersionComboBox.addItem(liferayVersion);
-		}
-
-		liferayVersionComboBox.setSelectedItem(WorkspaceConstants.DEFAULT_LIFERAY_VERSION);
-
 		if (_liferayProjectType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
+			JComboBox liferayVersionComboBox = new ComboBox<>();
+
+			for (String liferayVersion : WorkspaceConstants.LIFERAY_VERSIONS) {
+				liferayVersionComboBox.addItem(liferayVersion);
+			}
+
+			liferayVersionComboBox.setSelectedItem(WorkspaceConstants.DEFAULT_LIFERAY_VERSION);
+
 			settingsStep.addSettingsField("Liferay version:", liferayVersionComboBox);
-		}
 
-		JComboBox targetPlatformComboBox = new ComboBox<>();
+			JComboBox targetPlatformComboBox = new ComboBox<>();
 
-		String version = (String)liferayVersionComboBox.getSelectedItem();
+			String version = (String)liferayVersionComboBox.getSelectedItem();
 
-		String[] targetPlatformVersions = WorkspaceConstants.targetPlatformVersionMap.get(version);
+			String[] targetPlatformVersions = WorkspaceConstants.targetPlatformVersionMap.get(version);
 
-		Stream.of(
-			targetPlatformVersions
-		).forEach(
-			targetPlatformVersion -> targetPlatformComboBox.addItem(targetPlatformVersion)
-		);
+			Stream.of(
+				targetPlatformVersions
+			).forEach(
+				targetPlatformVersion -> targetPlatformComboBox.addItem(targetPlatformVersion)
+			);
 
-		targetPlatformComboBox.addActionListener(
-			new ActionListener() {
+			targetPlatformComboBox.addActionListener(
+				new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent event) {
-					if (targetPlatformComboBox.equals(event.getSource())) {
-						_targetPlatform = (String)targetPlatformComboBox.getSelectedItem();
+					@Override
+					public void actionPerformed(ActionEvent event) {
+						if (targetPlatformComboBox.equals(event.getSource())) {
+							_targetPlatform = (String)targetPlatformComboBox.getSelectedItem();
+						}
 					}
-				}
 
-			});
+				});
 
-		if (_liferayProjectType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
 			settingsStep.addSettingsField("Target platform:", targetPlatformComboBox);
+
+			liferayVersionComboBox.addActionListener(
+				e -> {
+					_liferayVersion = (String)liferayVersionComboBox.getSelectedItem();
+
+					targetPlatformComboBox.removeAllItems();
+
+					String[] selectedTargetPlatformVersions = WorkspaceConstants.targetPlatformVersionMap.get(
+						_liferayVersion);
+
+					Stream.of(
+						selectedTargetPlatformVersions
+					).forEach(
+						targetPlatformVersion -> targetPlatformComboBox.addItem(targetPlatformVersion)
+					);
+
+					targetPlatformComboBox.setSelectedIndex(0);
+
+					_targetPlatform = (String)targetPlatformComboBox.getSelectedItem();
+				});
 		}
-
-		liferayVersionComboBox.addActionListener(
-			e -> {
-				_liferayVersion = (String)liferayVersionComboBox.getSelectedItem();
-
-				targetPlatformComboBox.removeAllItems();
-
-				String[] selectedTargetPlatformVersions = WorkspaceConstants.targetPlatformVersionMap.get(
-					_liferayVersion);
-
-				Stream.of(
-					selectedTargetPlatformVersions
-				).forEach(
-					targetPlatformVersion -> targetPlatformComboBox.addItem(targetPlatformVersion)
-				);
-
-				targetPlatformComboBox.setSelectedIndex(0);
-
-				_targetPlatform = (String)targetPlatformComboBox.getSelectedItem();
-			});
 
 		JCheckBox indexSourcesCheckBox = new JCheckBox();
 
@@ -249,6 +252,24 @@ public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
 				config.save();
 			}
 			catch (ConfigurationException ce) {
+			}
+		}
+
+		if (_liferayProjectType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
+			File pomFile = new File(project.getBasePath(), "pom.xml");
+
+			if (FileUtil.exists(pomFile)) {
+				try {
+					Model pomModel = MavenUtil.getMavenModel(pomFile);
+
+					Properties properties = pomModel.getProperties();
+
+					properties.setProperty("liferay.bom.version", _targetPlatform);
+
+					MavenUtil.updateMavenPom(pomModel, pomFile);
+				}
+				catch (Exception e) {
+				}
 			}
 		}
 	}
