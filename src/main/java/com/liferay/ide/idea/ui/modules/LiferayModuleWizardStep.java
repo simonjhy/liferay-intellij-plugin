@@ -71,6 +71,7 @@ import org.jetbrains.annotations.Nullable;
  * @author Terry Jia
  * @author Simon Jiang
  * @author Ethan Sun
+ * @author Seiphon Wang
  */
 public class LiferayModuleWizardStep extends ModuleWizardStep implements LiferayWorkspaceSupport {
 
@@ -296,6 +297,13 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 		String liferayVersion = getLiferayVersion();
 
 		String type = getSelectedType();
+
+		if (type.equals("js-theme") || type.equals("js-widget")) {
+			throw new ConfigurationException(
+				"This wizard does not support creating this type of module. Create it using the CLI first and then " +
+					"import here.",
+				validationTitle);
+		}
 
 		if (LiferayWorkspaceSupport.isValidMavenWorkspaceLocation(workspaceProject)) {
 			if (Objects.equals(type, "form-field")) {
