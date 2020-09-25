@@ -265,13 +265,22 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 
 		String type = getSelectedType();
 
+		String liferayVersion = getLiferayVersion(_project);
+
+		if (Objects.equals(type, "form-field")) {
+			VersionRange requiredVersionRange = new VersionRange(
+					true, new Version("7.0"), new Version("7.2"), false);
+
+			if (!requiredVersionRange.includes(new Version(liferayVersion))) {
+				throw new ConfigurationException("Form Field project is only supported 7.0 and 7.1 for Maven", validationTitle);
+			}
+		}
+
 		String projectTemplateName = type.replaceAll("-", ".");
 
 		VersionRange versionRange = _projectTemplateVersionRangeMap.get(projectTemplateName);
 
 		if (versionRange != null) {
-			String liferayVersion = getLiferayVersion(_project);
-
 			boolean include = versionRange.includes(new Version(liferayVersion));
 
 			if (!include) {
