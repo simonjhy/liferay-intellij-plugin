@@ -146,9 +146,9 @@ public class LiferayModuleExtWizardStep extends ModuleWizardStep implements Life
 	public boolean validate() throws ConfigurationException {
 		String validationTitle = "Validation Error";
 
-		if (getTargetPlatformVersion(_project) == null) {
+		if (getWorkspaceProductInfo(_project) == null) {
 			throw new ConfigurationException(
-				"Please set target platform version for liferay workspace project", validationTitle);
+				"Please set workspace product info for liferay workspace project", validationTitle);
 		}
 
 		if (_originalModuleNameComboBox.getItemCount() == 0) {
@@ -158,7 +158,7 @@ public class LiferayModuleExtWizardStep extends ModuleWizardStep implements Life
 		if (CoreUtil.isNullOrEmpty(_getOriginalModuleName())) {
 			throw new ConfigurationException("Please input original module name", validationTitle);
 		}
-		else if ((getTargetPlatformVersion(_project) == null) &&
+		else if ((getWorkspaceProductInfo(_project) == null) &&
 				 CoreUtil.isNullOrEmpty(_originalModuleVersionField.getText())) {
 
 			throw new ConfigurationException("Please input original module version", validationTitle);
