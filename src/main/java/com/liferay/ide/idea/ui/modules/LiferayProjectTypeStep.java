@@ -598,12 +598,12 @@ public class LiferayProjectTypeStep extends ModuleWizardStep implements Disposab
 				String projectBasePath = project.getBasePath();
 
 				if (LiferayWorkspaceSupport.isValidGradleWorkspaceLocation(projectBasePath)) {
-					String workspaceProductKey = getGradleProperty(
-						projectBasePath, WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, null);
-
 					Map<String, ProductInfo> productInfosMap = LiferayWorkspaceSupport.getProductInfos(project);
 
 					if ((productInfosMap != null) && !productInfosMap.isEmpty()) {
+						String workspaceProductKey = getGradleProperty(
+							projectBasePath, WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, null);
+
 						Set<String> productInfosSet = productInfosMap.keySet();
 
 						if (CoreUtil.isNullOrEmpty(workspaceProductKey) ||

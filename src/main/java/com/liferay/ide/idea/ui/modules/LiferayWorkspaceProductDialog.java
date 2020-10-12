@@ -23,7 +23,6 @@ import com.intellij.openapi.externalSystem.service.notification.NotificationSour
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
-
 import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -46,6 +45,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
@@ -53,12 +58,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.plugins.gradle.util.GradleConstants;
 
-import javax.swing.*;
-
 /**
  * @author Ethan Sun
  */
 public class LiferayWorkspaceProductDialog extends DialogWrapper {
+
+	@Override
+	public void doCancelAction() {
+		super.doCancelAction();
+	}
 
 	protected LiferayWorkspaceProductDialog(@NotNull Project project) {
 		super(true);
@@ -151,16 +159,11 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 		super.doOKAction();
 	}
 
-	@Override
-	public void doCancelAction() {
-		super.doCancelAction();
-	}
-
 	@Nullable
 	@Override
 	protected ValidationInfo doValidate() {
 		if (_productVersionComboBox.getSelectedIndex() == -1) {
-			return new ValidationInfo("Please ");
+			return new ValidationInfo("Please configure product version");
 		}
 
 		return super.doValidate();

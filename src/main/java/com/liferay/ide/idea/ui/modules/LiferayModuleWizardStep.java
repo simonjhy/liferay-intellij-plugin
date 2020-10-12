@@ -168,31 +168,14 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 
 		String liferayVersion = obtainLiferayVersion(_project);
 
-		if (liferayVersion.isEmpty()) {
+		if (CoreUtil.isNullOrEmpty(liferayVersion)) {
 			_liferayVersionCombo.removeAllItems();
 
 			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
 				_liferayVersionCombo.addItem(liferayVersionItem);
 			}
 
-			_liferayVersionCombo.setSelectedItem(0);
-		}
-		else {
-			_mainPanel.remove(_liferayVersionLabel);
-
-			_mainPanel.remove(_liferayVersionCombo);
-
-			_mainPanel.repaint();
-		}
-
-		if (liferayVersion.isEmpty()) {
-			_liferayVersionCombo.removeAllItems();
-
-			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
-				_liferayVersionCombo.addItem(liferayVersionItem);
-			}
-
-			_liferayVersionCombo.setSelectedItem(0);
+			_liferayVersionCombo.setSelectedItem(WorkspaceConstants.DEFAULT_LIFERAY_VERSION);
 		}
 		else {
 			_mainPanel.remove(_liferayVersionLabel);
@@ -207,7 +190,7 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 				for (String type : BladeCLI.getProjectTemplates()) {
 					if (Objects.equals("fragment", type) || Objects.equals("modules-ext", type) ||
 						Objects.equals("spring-mvc-portlet", type) ||
-						(Objects.equals("7.0", liferayVersion) && Objects.equals("social-bookmark", type))) {
+						(Objects.equals("7.0", getLiferayVersion()) && Objects.equals("social-bookmark", type))) {
 
 						continue;
 					}

@@ -1,11 +1,11 @@
 /**
  * Copyright (c) 2000-present Liferay, Inc. All rights reserved.
- * <p>
+ *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
  * Software Foundation; either version 2.1 of the License, or (at your option)
  * any later version.
- * <p>
+ *
  * This library is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
  * FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
@@ -36,7 +36,6 @@ import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
-import com.liferay.ide.idea.ui.modules.LiferayWorkspaceProductTip;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -59,7 +58,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,583 +82,588 @@ import org.osgi.framework.Version;
  */
 public interface LiferayWorkspaceSupport {
 
-    public static Map<String, ProductInfo> getProductInfos(Project project) {
-        try (JsonReader jsonReader = new JsonReader(Files.newBufferedReader(_workspaceCacheFile.toPath()))) {
-            Gson gson = new Gson();
-
-            TypeToken<Map<String, ProductInfo>> typeToken = new TypeToken<Map<String, ProductInfo>>() {
-            };
-
-            return gson.fromJson(jsonReader, typeToken.getType());
-        } catch (Exception e) {
-            NotificationData notificationData = new NotificationData(
-                    "<b>Cannot Find Product Info</b>", "<i>" + project.getName() + "</i> \n" + e.getMessage(),
-                    NotificationCategory.WARNING, NotificationSource.TASK_EXECUTION);
-
-            notificationData.setBalloonNotification(true);
-
-            ExternalSystemNotificationManager externalSystemNotificationManager =
-                    ExternalSystemNotificationManager.getInstance(project);
-
-            externalSystemNotificationManager.showNotification(GradleConstants.SYSTEM_ID, notificationData);
-        }
-
-        return null;
-    }
-
-    public static List<LibraryData> getTargetPlatformArtifacts(Project project) {
-        ProjectDataManager projectDataManager = ProjectDataManager.getInstance();
-
-        Collection<ExternalProjectInfo> externalProjectInfos = projectDataManager.getExternalProjectsData(
-                project, GradleConstants.SYSTEM_ID);
-
-        for (ExternalProjectInfo externalProjectInfo : externalProjectInfos) {
-            DataNode<ProjectData> projectData = externalProjectInfo.getExternalProjectStructure();
-
-            if (projectData == null) {
-                continue;
-            }
-
-            Collection<DataNode<?>> dataNodes = projectData.getChildren();
+	public static Map<String, ProductInfo> getProductInfos(Project project) {
+		try (JsonReader jsonReader = new JsonReader(Files.newBufferedReader(_workspaceCacheFile.toPath()))) {
+			Gson gson = new Gson();
 
 			TypeToken<Map<String, ProductInfo>> typeToken = new TypeToken<Map<String, ProductInfo>>() {
 			};
 
-            List<LibraryData> libraryData = new ArrayList<>(dataNodes.size());
+			return gson.fromJson(jsonReader, typeToken.getType());
+		}
+		catch (Exception e) {
+			NotificationData notificationData = new NotificationData(
+				"<b>Cannot Find Product Info</b>", "<i>" + project.getName() + "</i> \n" + e.getMessage(),
+				NotificationCategory.WARNING, NotificationSource.TASK_EXECUTION);
 
-            for (DataNode<?> child : dataNodes) {
-                if (!ProjectKeys.LIBRARY.equals(child.getKey())) {
-                    continue;
-                }
+			notificationData.setBalloonNotification(true);
 
-                libraryData.add((LibraryData) child.getData());
-            }
+			ExternalSystemNotificationManager externalSystemNotificationManager =
+				ExternalSystemNotificationManager.getInstance(project);
 
-            libraryData.sort(
-                    Comparator.comparing(LibraryData::getArtifactId, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)));
+			externalSystemNotificationManager.showNotification(GradleConstants.SYSTEM_ID, notificationData);
+		}
 
-            return libraryData;
-        }
+		return null;
+	}
 
-        return Collections.emptyList();
-    }
+	public static List<LibraryData> getTargetPlatformArtifacts(Project project) {
+		ProjectDataManager projectDataManager = ProjectDataManager.getInstance();
 
-    @Nullable
-    public static VirtualFile getWorkspaceVirtualFile(@Nullable Project project) {
-        if (project == null) {
-            return null;
-        }
+		Collection<ExternalProjectInfo> externalProjectInfos = projectDataManager.getExternalProjectsData(
+			project, GradleConstants.SYSTEM_ID);
 
-        String projectBasePath = project.getBasePath();
+		for (ExternalProjectInfo externalProjectInfo : externalProjectInfos) {
+			DataNode<ProjectData> projectData = externalProjectInfo.getExternalProjectStructure();
 
-        if (projectBasePath == null) {
-            return null;
-        }
+			if (projectData == null) {
+				continue;
+			}
 
-        LocalFileSystem fileSystem = LocalFileSystem.getInstance();
+			Collection<DataNode<?>> dataNodes = projectData.getChildren();
 
-        return fileSystem.findFileByPath(projectBasePath);
-    }
+			List<LibraryData> libraryData = new ArrayList<>(dataNodes.size());
 
-    public static boolean isFlexibleLiferayWorkspace(Project workspaceProject) {
-        if (isValidGradleWorkspaceProject(workspaceProject)) {
-            if (CoreUtil.compareVersions(
-                    new Version(GradleUtil.getWorkspacePluginVersion(workspaceProject)), new Version("2.5.0")) >= 0) {
+			for (DataNode<?> child : dataNodes) {
+				if (!ProjectKeys.LIBRARY.equals(child.getKey())) {
+					continue;
+				}
 
-                return true;
-            }
+				libraryData.add((LibraryData)child.getData());
+			}
 
-            return false;
-        } else if (isValidMavenWorkspaceLocation(workspaceProject)) {
-            MavenProject mavenWorkspaceProject = MavenUtil.getWorkspaceMavenProject(workspaceProject);
+			libraryData.sort(
+				Comparator.comparing(LibraryData::getArtifactId, Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)));
 
-            Properties properties = mavenWorkspaceProject.getProperties();
+			return libraryData;
+		}
 
-            return Objects.nonNull(properties.getProperty(WorkspaceConstants.WORKSPACE_BOM_VERSION, null));
-        }
+		return Collections.emptyList();
+	}
 
-        return false;
-    }
+	@Nullable
+	public static VirtualFile getWorkspaceVirtualFile(@Nullable Project project) {
+		if (project == null) {
+			return null;
+		}
 
-    public static boolean isValidGradleWorkspaceLocation(@Nullable String location) {
-        if (location == null) {
-            return false;
-        }
+		String projectBasePath = project.getBasePath();
 
-        File workspaceDir = new File(location);
+		if (projectBasePath == null) {
+			return null;
+		}
 
-        File buildGradle = new File(workspaceDir, BUILD_GRADLE_FILE_NAME);
-        File settingsGradle = new File(workspaceDir, SETTINGS_GRADLE_FILE_NAME);
-        File gradleProperties = new File(workspaceDir, GRADLE_PROPERTIES_FILE_NAME);
+		LocalFileSystem fileSystem = LocalFileSystem.getInstance();
 
-        if (!(buildGradle.exists() && settingsGradle.exists() && gradleProperties.exists())) {
-            return false;
-        }
+		return fileSystem.findFileByPath(projectBasePath);
+	}
 
-        String settingsContent = FileUtil.readContents(settingsGradle, true);
+	public static boolean isFlexibleLiferayWorkspace(Project workspaceProject) {
+		if (isValidGradleWorkspaceProject(workspaceProject)) {
+			if (CoreUtil.compareVersions(
+					new Version(GradleUtil.getWorkspacePluginVersion(workspaceProject)), new Version("2.5.0")) >= 0) {
 
-        Matcher matcher = PATTERN_WORKSPACE_PLUGIN.matcher(settingsContent);
+				return true;
+			}
 
-        return matcher.matches();
-    }
+			return false;
+		}
+		else if (isValidMavenWorkspaceLocation(workspaceProject)) {
+			MavenProject mavenWorkspaceProject = MavenUtil.getWorkspaceMavenProject(workspaceProject);
 
-    public static boolean isValidGradleWorkspaceProject(Project project) {
-        return isValidGradleWorkspaceLocation(project.getBasePath());
-    }
+			Properties properties = mavenWorkspaceProject.getProperties();
 
-    public static boolean isValidMavenWorkspaceLocation(Project project) {
-        if (project == null) {
-            return false;
-        }
+			return Objects.nonNull(properties.getProperty(WorkspaceConstants.WORKSPACE_BOM_VERSION, null));
+		}
 
-        try {
-            MavenProjectsManager mavenProjectsManager = MavenProjectsManager.getInstance(project);
+		return false;
+	}
 
-            if (!mavenProjectsManager.isMavenizedProject()) {
-                return false;
-            }
+	public static boolean isValidGradleWorkspaceLocation(@Nullable String location) {
+		if (location == null) {
+			return false;
+		}
 
-            VirtualFile workspaceVirtualFile = getWorkspaceVirtualFile(project);
+		File workspaceDir = new File(location);
 
-            if (workspaceVirtualFile == null) {
-                return false;
-            }
+		File buildGradle = new File(workspaceDir, BUILD_GRADLE_FILE_NAME);
+		File settingsGradle = new File(workspaceDir, SETTINGS_GRADLE_FILE_NAME);
+		File gradleProperties = new File(workspaceDir, GRADLE_PROPERTIES_FILE_NAME);
 
-            MavenProject mavenWorkspaceProject = mavenProjectsManager.findContainingProject(workspaceVirtualFile);
+		if (!(buildGradle.exists() && settingsGradle.exists() && gradleProperties.exists())) {
+			return false;
+		}
 
-            if (mavenWorkspaceProject == null) {
-                return false;
-            }
+		String settingsContent = FileUtil.readContents(settingsGradle, true);
 
-            MavenPlugin liferayWorkspacePlugin = mavenWorkspaceProject.findPlugin(
-                    "com.liferay", "com.liferay.portal.tools.bundle.support");
+		Matcher matcher = PATTERN_WORKSPACE_PLUGIN.matcher(settingsContent);
 
-            if (liferayWorkspacePlugin != null) {
-                return true;
-            }
-        } catch (Exception e) {
-            return false;
-        }
+		return matcher.matches();
+	}
 
-        return false;
-    }
+	public static boolean isValidGradleWorkspaceProject(Project project) {
+		return isValidGradleWorkspaceLocation(project.getBasePath());
+	}
 
-    public static boolean isValidWorkspaceLocation(Project project) {
-        if ((project != null) &&
-                (isValidGradleWorkspaceLocation(project.getBasePath()) || isValidMavenWorkspaceLocation(project))) {
+	public static boolean isValidMavenWorkspaceLocation(Project project) {
+		if (project == null) {
+			return false;
+		}
 
-            return true;
-        }
+		try {
+			MavenProjectsManager mavenProjectsManager = MavenProjectsManager.getInstance(project);
 
-        return false;
-    }
+			if (!mavenProjectsManager.isMavenizedProject()) {
+				return false;
+			}
 
-    public default String getGradleProperty(String projectLocation, String key, String defaultValue) {
-        File gradleProperties = new File(projectLocation, "gradle.properties");
+			VirtualFile workspaceVirtualFile = getWorkspaceVirtualFile(project);
 
-        if (gradleProperties.exists()) {
-            Properties properties = PropertiesUtil.loadProperties(gradleProperties);
+			if (workspaceVirtualFile == null) {
+				return false;
+			}
 
-            if (properties == null) {
-                return defaultValue;
-            }
+			MavenProject mavenWorkspaceProject = mavenProjectsManager.findContainingProject(workspaceVirtualFile);
 
-            return properties.getProperty(key, defaultValue);
-        }
+			if (mavenWorkspaceProject == null) {
+				return false;
+			}
 
-        return "";
-    }
+			MavenPlugin liferayWorkspacePlugin = mavenWorkspaceProject.findPlugin(
+				"com.liferay", "com.liferay.portal.tools.bundle.support");
 
-    public default String getHomeDir(String location) {
-        String result = getGradleProperty(
-                location, WorkspaceConstants.HOME_DIR_PROPERTY, WorkspaceConstants.HOME_DIR_DEFAULT);
+			if (liferayWorkspacePlugin != null) {
+				return true;
+			}
+		}
+		catch (Exception e) {
+			return false;
+		}
 
-        if (CoreUtil.isNullOrEmpty(result)) {
-            return WorkspaceConstants.HOME_DIR_DEFAULT;
-        }
+		return false;
+	}
 
-        return result;
-    }
+	public static boolean isValidWorkspaceLocation(Project project) {
+		if ((project != null) &&
+			(isValidGradleWorkspaceLocation(project.getBasePath()) || isValidMavenWorkspaceLocation(project))) {
 
-    public default boolean getIndexSources(Project project) {
-        String result = "false";
+			return true;
+		}
 
-        VirtualFile workspaceVirtualFile = getWorkspaceVirtualFile(project);
+		return false;
+	}
 
-        if (workspaceVirtualFile != null) {
-            VirtualFile gradlePropertiesVirtualFile = workspaceVirtualFile.findFileByRelativePath("/gradle.properties");
+	public default String getGradleProperty(String projectLocation, String key, String defaultValue) {
+		File gradleProperties = new File(projectLocation, "gradle.properties");
 
-            if (gradlePropertiesVirtualFile != null) {
-                Properties properties = new Properties();
+		if (gradleProperties.exists()) {
+			Properties properties = PropertiesUtil.loadProperties(gradleProperties);
 
-                try {
-                    properties.load(gradlePropertiesVirtualFile.getInputStream());
+			if (properties == null) {
+				return defaultValue;
+			}
 
-                    result = properties.getProperty(WorkspaceConstants.TARGET_PLATFORM_INDEX_SOURCES_PROPERTY);
-                } catch (IOException ioe) {
-                }
-            }
-        }
+			return properties.getProperty(key, defaultValue);
+		}
 
-        return Boolean.parseBoolean(result);
-    }
+		return "";
+	}
 
-    @Nullable
-    public default String getLiferayVersion(Project project) {
-        String targetPlatformVersion = getTargetPlatformVersion(project);
+	public default String getHomeDir(String location) {
+		String result = getGradleProperty(
+			location, WorkspaceConstants.HOME_DIR_PROPERTY, WorkspaceConstants.HOME_DIR_DEFAULT);
 
-        if (!CoreUtil.isNullOrEmpty(targetPlatformVersion)) {
-            String[] versionArr = targetPlatformVersion.split("\\.");
+		if (CoreUtil.isNullOrEmpty(result)) {
+			return WorkspaceConstants.HOME_DIR_DEFAULT;
+		}
 
-            return versionArr[0] + "." + versionArr[1];
-        }
+		return result;
+	}
 
-        ProductInfo workspaceProductInfo = getWorkspaceProductInfo(project);
+	public default boolean getIndexSources(Project project) {
+		String result = "false";
 
-        if (Objects.nonNull(workspaceProductInfo)) {
-            String workspaceProductTargetPlatformVersion = workspaceProductInfo.getTargetPlatformVersion();
+		VirtualFile workspaceVirtualFile = getWorkspaceVirtualFile(project);
 
-            if (verfiyTargetPlatformVersion(workspaceProductTargetPlatformVersion)) {
-                String[] versionArr = workspaceProductTargetPlatformVersion.split("\\.");
+		if (workspaceVirtualFile != null) {
+			VirtualFile gradlePropertiesVirtualFile = workspaceVirtualFile.findFileByRelativePath("/gradle.properties");
 
-                return versionArr[0] + "." + versionArr[1];
-            }
-        }
+			if (gradlePropertiesVirtualFile != null) {
+				Properties properties = new Properties();
 
-        return "";
-    }
+				try {
+					properties.load(gradlePropertiesVirtualFile.getInputStream());
 
-    @Nullable
-    public default String getMavenProperty(Project project, String key, String defaultValue) {
-        if (!isValidMavenWorkspaceLocation(project)) {
-            return null;
-        }
+					result = properties.getProperty(WorkspaceConstants.TARGET_PLATFORM_INDEX_SOURCES_PROPERTY);
+				}
+				catch (IOException ioe) {
+				}
+			}
+		}
 
-        MavenProject mavenWorkspaceProject = MavenUtil.getWorkspaceMavenProject(project);
+		return Boolean.parseBoolean(result);
+	}
 
-        if (mavenWorkspaceProject == null) {
-            return defaultValue;
-        }
+	@Nullable
+	public default String getLiferayVersion(Project project) {
+		String targetPlatformVersion = getTargetPlatformVersion(project);
 
-        Properties properties = mavenWorkspaceProject.getProperties();
+		if (!CoreUtil.isNullOrEmpty(targetPlatformVersion)) {
+			String[] versionArr = targetPlatformVersion.split("\\.");
 
-        return properties.getProperty(key, defaultValue);
-    }
+			return versionArr[0] + "." + versionArr[1];
+		}
 
-    @Nullable
-    public default VirtualFile getModuleExtDirFile(Project project) {
-        if (project == null) {
-            return null;
-        }
+		ProductInfo workspaceProductInfo = getWorkspaceProductInfo(project);
 
-        String moduleExtDir = getWorkspaceProperty(
-                project, WorkspaceConstants.EXT_DIR_PROPERTY, WorkspaceConstants.EXT_DIR_DEFAULT);
+		if (Objects.nonNull(workspaceProductInfo)) {
+			String workspaceProductTargetPlatformVersion = workspaceProductInfo.getTargetPlatformVersion();
 
-        File file = new File(moduleExtDir);
+			if (verfiyTargetPlatformVersion(workspaceProductTargetPlatformVersion)) {
+				String[] versionArr = workspaceProductTargetPlatformVersion.split("\\.");
 
-        if (!file.isAbsolute()) {
-            String projectBasePath = project.getBasePath();
+				return versionArr[0] + "." + versionArr[1];
+			}
+		}
 
-            if (projectBasePath == null) {
-                return null;
-            }
+		return WorkspaceConstants.DEFAULT_LIFERAY_VERSION;
+	}
 
-            file = new File(projectBasePath, moduleExtDir);
-        }
+	@Nullable
+	public default String getMavenProperty(Project project, String key, String defaultValue) {
+		if (!isValidMavenWorkspaceLocation(project)) {
+			return null;
+		}
 
-        LocalFileSystem localFileSystem = LocalFileSystem.getInstance();
+		MavenProject mavenWorkspaceProject = MavenUtil.getWorkspaceMavenProject(project);
 
-        return localFileSystem.findFileByPath(file.getPath());
-    }
+		if (mavenWorkspaceProject == null) {
+			return defaultValue;
+		}
 
-    public default List<String> getTargetPlatformDependencies(Project project) {
-        String targetPlatformVersion = getTargetPlatformVersion(project);
+		Properties properties = mavenWorkspaceProject.getProperties();
 
-        List<String> targetPlatformDependencyList = targetPlatformDependenciesMap.get(targetPlatformVersion);
+		return properties.getProperty(key, defaultValue);
+	}
 
-        if ((targetPlatformDependencyList != null) && !targetPlatformDependencyList.isEmpty()) {
-            return targetPlatformDependencyList;
-        }
+	@Nullable
+	public default VirtualFile getModuleExtDirFile(Project project) {
+		if (project == null) {
+			return null;
+		}
 
-        List<String> javaHomePaths = JavaHomeFinder.suggestHomePaths();
+		String moduleExtDir = getWorkspaceProperty(
+			project, WorkspaceConstants.EXT_DIR_PROPERTY, WorkspaceConstants.EXT_DIR_DEFAULT);
 
-        File javaHomeFile = null;
+		File file = new File(moduleExtDir);
 
-        if (javaHomePaths.isEmpty()) {
-            String pathEnv = System.getenv("PATH");
+		if (!file.isAbsolute()) {
+			String projectBasePath = project.getBasePath();
 
-            String[] paths = pathEnv.split(Pattern.quote(File.pathSeparator));
+			if (projectBasePath == null) {
+				return null;
+			}
 
-            for (String pathValue : paths) {
-                Path path = Paths.get(pathValue);
+			file = new File(projectBasePath, moduleExtDir);
+		}
 
-                Path javaPath = path.resolve("java");
+		LocalFileSystem localFileSystem = LocalFileSystem.getInstance();
 
-                if (Files.exists(javaPath)) {
-                    javaHomeFile = javaPath.toFile();
+		return localFileSystem.findFileByPath(file.getPath());
+	}
 
-                    javaHomeFile = javaHomeFile.getParentFile();
+	public default List<String> getTargetPlatformDependencies(Project project) {
+		String targetPlatformVersion = getTargetPlatformVersion(project);
 
-                    javaHomeFile = javaHomeFile.getParentFile();
+		List<String> targetPlatformDependencyList = targetPlatformDependenciesMap.get(targetPlatformVersion);
 
-                    break;
-                }
-            }
+		if ((targetPlatformDependencyList != null) && !targetPlatformDependencyList.isEmpty()) {
+			return targetPlatformDependencyList;
+		}
 
-            if (javaHomeFile == null) {
-                javaHomeFile = new File(System.getProperty("java.home"));
-            }
-        } else {
-            javaHomeFile = new File(javaHomePaths.get(0));
-        }
+		List<String> javaHomePaths = JavaHomeFinder.suggestHomePaths();
 
-        if (!javaHomeFile.exists()) {
-            return Collections.emptyList();
-        }
+		File javaHomeFile = null;
 
-        GradleProject workspaceGradleProject = GradleUtil.getWorkspaceGradleProject(project);
+		if (javaHomePaths.isEmpty()) {
+			String pathEnv = System.getenv("PATH");
 
-        DomainObjectSet<? extends GradleTask> tasksSet = workspaceGradleProject.getTasks();
+			String[] paths = pathEnv.split(Pattern.quote(File.pathSeparator));
 
-        List<? extends GradleTask> tasksList = tasksSet.getAll();
+			for (String pathValue : paths) {
+				Path path = Paths.get(pathValue);
 
-        Optional<? extends GradleTask> dependencyManagementTask = tasksList.stream(
-        ).filter(
-                task -> StringUtil.equals("dependencyManagement", task.getName())
-        ).filter(
-                task -> workspaceGradleProject.equals(task.getProject())
-        ).findAny();
+				Path javaPath = path.resolve("java");
 
-        List<String> list = new ArrayList<>();
+				if (Files.exists(javaPath)) {
+					javaHomeFile = javaPath.toFile();
 
-        if (dependencyManagementTask.isPresent()) {
-            File file = new File(project.getBasePath());
+					javaHomeFile = javaHomeFile.getParentFile();
 
-            OutputStream outputStream = new ByteArrayOutputStream();
+					javaHomeFile = javaHomeFile.getParentFile();
 
-            GradleConnector.newConnector(
-            ).forProjectDirectory(
-                    file
-            ).connect(
-            ).newBuild(
-            ).setJavaHome(
-                    javaHomeFile
-            ).addArguments(
-                    "--rerun-tasks"
-            ).forTasks(
-                    "dependencyManagement"
-            ).setStandardOutput(
-                    outputStream
-            ).run();
+					break;
+				}
+			}
 
-            String output = outputStream.toString();
+			if (javaHomeFile == null) {
+				javaHomeFile = new File(System.getProperty("java.home"));
+			}
+		}
+		else {
+			javaHomeFile = new File(javaHomePaths.get(0));
+		}
 
-            String taskOutputInfo;
+		if (!javaHomeFile.exists()) {
+			return Collections.emptyList();
+		}
 
-            if (CoreUtil.compareVersions(
-                    new Version(GradleUtil.getWorkspacePluginVersion(project)), new Version("2.2.4")) < 0) {
+		GradleProject workspaceGradleProject = GradleUtil.getWorkspaceGradleProject(project);
 
-                taskOutputInfo = "compileOnly - Dependency management for the compileOnly configuration";
-            } else {
-                taskOutputInfo = "> Task :dependencyManagement";
-            }
+		DomainObjectSet<? extends GradleTask> tasksSet = workspaceGradleProject.getTasks();
 
-            if (!CoreUtil.isNullOrEmpty(output) && !output.equals("")) {
-                BufferedReader bufferedReader = new BufferedReader(new StringReader(output));
+		List<? extends GradleTask> tasksList = tasksSet.getAll();
 
-                String line;
+		Optional<? extends GradleTask> dependencyManagementTask = tasksList.stream(
+		).filter(
+			task -> StringUtil.equals("dependencyManagement", task.getName())
+		).filter(
+			task -> workspaceGradleProject.equals(task.getProject())
+		).findAny();
 
-                try {
-                    boolean start = false;
+		List<String> list = new ArrayList<>();
 
-                    while ((line = bufferedReader.readLine()) != null) {
-                        if (taskOutputInfo.equals(line)) {
-                            start = true;
+		if (dependencyManagementTask.isPresent()) {
+			File file = new File(project.getBasePath());
 
-                            continue;
-                        }
+			OutputStream outputStream = new ByteArrayOutputStream();
 
-                        if (start) {
-                            if (StringUtil.equals(line.trim(), "")) {
-                                break;
-                            }
+			GradleConnector.newConnector(
+			).forProjectDirectory(
+				file
+			).connect(
+			).newBuild(
+			).setJavaHome(
+				javaHomeFile
+			).addArguments(
+				"--rerun-tasks"
+			).forTasks(
+				"dependencyManagement"
+			).setStandardOutput(
+				outputStream
+			).run();
 
-                            list.add(line.trim());
-                        }
-                    }
-                } catch (IOException ioe) {
-                }
-            }
-        }
+			String output = outputStream.toString();
 
-        targetPlatformDependenciesMap.put(targetPlatformVersion, list);
+			String taskOutputInfo;
 
-        return list;
-    }
+			if (CoreUtil.compareVersions(
+					new Version(GradleUtil.getWorkspacePluginVersion(project)), new Version("2.2.4")) < 0) {
 
-    @Nullable
-    public default String getTargetPlatformVersion(Project project) {
-        String location = project.getBasePath();
+				taskOutputInfo = "compileOnly - Dependency management for the compileOnly configuration";
+			}
+			else {
+				taskOutputInfo = "> Task :dependencyManagement";
+			}
 
-        if (isValidGradleWorkspaceProject(project)) {
-            String targetPlatformVersion = getGradleProperty(
-                    location, WorkspaceConstants.TARGET_PLATFORM_VERSION_PROPERTY, null);
+			if (!CoreUtil.isNullOrEmpty(output) && !output.equals("")) {
+				BufferedReader bufferedReader = new BufferedReader(new StringReader(output));
 
-            if (Objects.nonNull(targetPlatformVersion)) {
-                return targetPlatformVersion;
-            }
+				String line;
 
-            ProductInfo productInfo = getWorkspaceProductInfo(project);
+				try {
+					boolean start = false;
 
-            if (Objects.nonNull(productInfo)) {
-                return productInfo.getTargetPlatformVersion();
-            }
-        } else if (isValidMavenWorkspaceLocation(project)) {
-            return getMavenProperty(project, WorkspaceConstants.WORKSPACE_BOM_VERSION, null);
-        }
+					while ((line = bufferedReader.readLine()) != null) {
+						if (taskOutputInfo.equals(line)) {
+							start = true;
 
-        return null;
-    }
+							continue;
+						}
 
-    public default ProductInfo getWorkspaceProductInfo(Project project) {
-        String projectPath = project.getBasePath();
+						if (start) {
+							if (StringUtil.equals(line.trim(), "")) {
+								break;
+							}
 
-        String workspaceProductKey = getGradleProperty(
-                projectPath, WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, null);
+							list.add(line.trim());
+						}
+					}
+				}
+				catch (IOException ioe) {
+				}
+			}
+		}
 
-        if (CoreUtil.isNullOrEmpty(workspaceProductKey)) {
-            return null;
-        }
+		targetPlatformDependenciesMap.put(targetPlatformVersion, list);
 
-        Map<String, ProductInfo> productInfos = getProductInfos(project);
+		return list;
+	}
 
-        if (Objects.nonNull(productInfos)) {
-            return productInfos.get(workspaceProductKey);
-        }
+	@Nullable
+	public default String getTargetPlatformVersion(Project project) {
+		String location = project.getBasePath();
 
-        return null;
-    }
+		if (isValidGradleWorkspaceProject(project)) {
+			String targetPlatformVersion = getGradleProperty(
+				location, WorkspaceConstants.TARGET_PLATFORM_VERSION_PROPERTY, null);
 
-    @NotNull
-    public default String getWorkspaceProperty(Project project, String key, String defaultValue) {
-        String retval = null;
+			if (Objects.nonNull(targetPlatformVersion)) {
+				return targetPlatformVersion;
+			}
 
-        if (project != null) {
-            String projectLocation = project.getBasePath();
+			ProductInfo productInfo = getWorkspaceProductInfo(project);
 
-            if (projectLocation != null) {
-                retval = getGradleProperty(projectLocation, key, defaultValue);
-            }
-        }
+			if (Objects.nonNull(productInfo)) {
+				return productInfo.getTargetPlatformVersion();
+			}
+		}
+		else if (isValidMavenWorkspaceLocation(project)) {
+			return getMavenProperty(project, WorkspaceConstants.WORKSPACE_BOM_VERSION, null);
+		}
 
-        if (CoreUtil.isNullOrEmpty(retval)) {
-            return defaultValue;
-        }
+		return null;
+	}
 
-        return retval;
-    }
+	public default ProductInfo getWorkspaceProductInfo(Project project) {
+		String projectPath = project.getBasePath();
 
-    public default String obtainLiferayVersion(Project project) {
-        String liferayVersion = null;
+		String workspaceProductKey = getGradleProperty(
+			projectPath, WorkspaceConstants.WORKSPACE_PRODUCT_PROPERTY, null);
 
-        String targetPlatformVersion = getTargetPlatformVersion(project);
+		if (CoreUtil.isNullOrEmpty(workspaceProductKey)) {
+			return null;
+		}
 
-        if (verfiyTargetPlatformVersion(targetPlatformVersion)) {
-            liferayVersion = targetPlatformVersion.substring(0, 3);
-        }
+		Map<String, ProductInfo> productInfos = getProductInfos(project);
 
-        ProductInfo workspaceProductInfo = getWorkspaceProductInfo(project);
+		if (!CoreUtil.isNullOrEmpty(workspaceProductKey) && productInfos.containsKey(workspaceProductKey)) {
+			return productInfos.get(workspaceProductKey);
+		}
 
-        if (Objects.nonNull(workspaceProductInfo)) {
-            String workspaceProductTargetPlatformVersion = workspaceProductInfo.getTargetPlatformVersion();
+		return null;
+	}
 
-            if (verfiyTargetPlatformVersion(workspaceProductTargetPlatformVersion)) {
-                liferayVersion = workspaceProductTargetPlatformVersion.substring(0, 3);
-            }
-        }
+	@NotNull
+	public default String getWorkspaceProperty(Project project, String key, String defaultValue) {
+		String retval = null;
 
-        return liferayVersion;
-    }
+		if (project != null) {
+			String projectLocation = project.getBasePath();
 
-    public default boolean verfiyTargetPlatformVersion(String targetPlatformVersion) {
-        if (CoreUtil.isNullOrEmpty(targetPlatformVersion)) {
-            return false;
-        }
+			if (projectLocation != null) {
+				retval = getGradleProperty(projectLocation, key, defaultValue);
+			}
+		}
 
-        int dashPosition = targetPlatformVersion.indexOf(StringPool.DASH);
+		if (CoreUtil.isNullOrEmpty(retval)) {
+			return defaultValue;
+		}
 
-        if (dashPosition != -1) {
-            return aQute.bnd.version.Version.isVersion(targetPlatformVersion.substring(0, dashPosition));
-        }
+		return retval;
+	}
 
-        return aQute.bnd.version.Version.isVersion(targetPlatformVersion);
-    }
+	public default String obtainLiferayVersion(Project project) {
+		String liferayVersion = null;
 
-    public final String BUILD_GRADLE_FILE_NAME = "build.gradle";
+		String targetPlatformVersion = getTargetPlatformVersion(project);
 
-    public final String DEFAULT_WORKSPACE_CACHE_FILE = ".liferay/workspace/.product_info.json";
+		if (verfiyTargetPlatformVersion(targetPlatformVersion)) {
+			liferayVersion = targetPlatformVersion.substring(0, 3);
+		}
 
-    public final String GRADLE_PROPERTIES_FILE_NAME = "gradle.properties";
+		ProductInfo workspaceProductInfo = getWorkspaceProductInfo(project);
 
-    public final Pattern PATTERN_WORKSPACE_PLUGIN = Pattern.compile(
-            ".*apply.*plugin.*:.*[\'\"]com\\.liferay\\.workspace[\'\"].*", Pattern.MULTILINE | Pattern.DOTALL);
+		if (Objects.nonNull(workspaceProductInfo)) {
+			String workspaceProductTargetPlatformVersion = workspaceProductInfo.getTargetPlatformVersion();
 
-    public final String SETTINGS_GRADLE_FILE_NAME = "settings.gradle";
+			if (verfiyTargetPlatformVersion(workspaceProductTargetPlatformVersion)) {
+				liferayVersion = workspaceProductTargetPlatformVersion.substring(0, 3);
+			}
+		}
 
-    public final File _workspaceCacheFile = new File(System.getProperty("user.home"), DEFAULT_WORKSPACE_CACHE_FILE);
-    public Map<String, List<String>> targetPlatformDependenciesMap = new HashMap<>();
+		return liferayVersion;
+	}
 
-    public class ProductInfo {
+	public default boolean verfiyTargetPlatformVersion(String targetPlatformVersion) {
+		if (CoreUtil.isNullOrEmpty(targetPlatformVersion)) {
+			return false;
+		}
 
-        public String getAppServerTomcatVersion() {
-            return _appServerTomcatVersion;
-        }
+		int dashPosition = targetPlatformVersion.indexOf(StringPool.DASH);
 
-        public String getBundleUrl() {
-            return _bundleUrl;
-        }
+		if (dashPosition != -1) {
+			return aQute.bnd.version.Version.isVersion(targetPlatformVersion.substring(0, dashPosition));
+		}
 
-        public String getLiferayDockerImage() {
-            return _liferayDockerImage;
-        }
+		return aQute.bnd.version.Version.isVersion(targetPlatformVersion);
+	}
 
-        public String getLiferayProductVersion() {
-            return _liferayProductVersion;
-        }
+	public final String BUILD_GRADLE_FILE_NAME = "build.gradle";
 
-        public String getReleaseDate() {
-            return _releaseDate;
-        }
+	public final String DEFAULT_WORKSPACE_CACHE_FILE = ".liferay/workspace/.product_info.json";
 
-        public String getTargetPlatformVersion() {
-            return _targetPlatformVersion;
-        }
+	public final String GRADLE_PROPERTIES_FILE_NAME = "gradle.properties";
 
-        public boolean isInitialVersion() {
-            return _initialVersion;
-        }
+	public final Pattern PATTERN_WORKSPACE_PLUGIN = Pattern.compile(
+		".*apply.*plugin.*:.*[\'\"]com\\.liferay\\.workspace[\'\"].*", Pattern.MULTILINE | Pattern.DOTALL);
 
-        @SerializedName("appServerTomcatVersion")
-        private String _appServerTomcatVersion;
+	public final String SETTINGS_GRADLE_FILE_NAME = "settings.gradle";
 
-        @SerializedName("bundleUrl")
-        private String _bundleUrl;
+	public final File _workspaceCacheFile = new File(System.getProperty("user.home"), DEFAULT_WORKSPACE_CACHE_FILE);
+	public Map<String, List<String>> targetPlatformDependenciesMap = new HashMap<>();
 
-        @SerializedName("initialVersion")
-        private boolean _initialVersion;
+	public class ProductInfo {
 
-        @SerializedName("liferayDockerImage")
-        private String _liferayDockerImage;
+		public String getAppServerTomcatVersion() {
+			return _appServerTomcatVersion;
+		}
 
-        @SerializedName("liferayProductVersion")
-        private String _liferayProductVersion;
+		public String getBundleUrl() {
+			return _bundleUrl;
+		}
 
-        @SerializedName("releaseDate")
-        private String _releaseDate;
+		public String getLiferayDockerImage() {
+			return _liferayDockerImage;
+		}
 
-        @SerializedName("targetPlatformVersion")
-        private String _targetPlatformVersion;
+		public String getLiferayProductVersion() {
+			return _liferayProductVersion;
+		}
 
-    }
+		public String getReleaseDate() {
+			return _releaseDate;
+		}
+
+		public String getTargetPlatformVersion() {
+			return _targetPlatformVersion;
+		}
+
+		public boolean isInitialVersion() {
+			return _initialVersion;
+		}
+
+		@SerializedName("appServerTomcatVersion")
+		private String _appServerTomcatVersion;
+
+		@SerializedName("bundleUrl")
+		private String _bundleUrl;
+
+		@SerializedName("initialVersion")
+		private boolean _initialVersion;
+
+		@SerializedName("liferayDockerImage")
+		private String _liferayDockerImage;
+
+		@SerializedName("liferayProductVersion")
+		private String _liferayProductVersion;
+
+		@SerializedName("releaseDate")
+		private String _releaseDate;
+
+		@SerializedName("targetPlatformVersion")
+		private String _targetPlatformVersion;
+
+	}
 
 }

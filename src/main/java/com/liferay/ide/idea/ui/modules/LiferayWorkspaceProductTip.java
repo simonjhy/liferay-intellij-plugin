@@ -73,7 +73,7 @@ public class LiferayWorkspaceProductTip extends DialogWrapper {
 
 		Application application = ApplicationManager.getApplication();
 
-		application.runWriteAction(
+		application.invokeAndWait(
 			() -> {
 				LiferayWorkspaceProductDialog liferayWorkspaceProductDialog = new LiferayWorkspaceProductDialog(
 					_project);

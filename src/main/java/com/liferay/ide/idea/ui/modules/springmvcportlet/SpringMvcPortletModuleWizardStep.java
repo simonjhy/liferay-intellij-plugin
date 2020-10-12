@@ -19,6 +19,7 @@ import com.intellij.ide.util.projectWizard.WizardContext;
 import com.intellij.openapi.project.Project;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
+import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
 
 import java.util.Map;
@@ -38,18 +39,19 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 
 	public SpringMvcPortletModuleWizardStep(WizardContext wizardContext, SpringMVCPortletModuleBuilder builder) {
 		_builder = builder;
+
 		_project = wizardContext.getProject();
 
 		String liferayVersion = obtainLiferayVersion(_project);
 
-		if (liferayVersion.isEmpty()) {
+		if (CoreUtil.isNullOrEmpty(liferayVersion)) {
 			_liferayVersionCombo.removeAllItems();
 
 			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
 				_liferayVersionCombo.addItem(liferayVersionItem);
 			}
 
-			_liferayVersionCombo.setSelectedItem(0);
+			_liferayVersionCombo.setSelectedItem(WorkspaceConstants.DEFAULT_LIFERAY_VERSION);
 		}
 		else {
 			_mainPanel.remove(_liferayVersionLabel);
@@ -59,7 +61,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 			_mainPanel.repaint();
 		}
 
-		_intializeSpringConfigurationData(liferayVersion);
+		_intializeSpringConfigurationData(getLiferayVersion());
 
 		_frameworkCombo.addItemListener(
 			e -> {
@@ -69,7 +71,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 				if (value.equals(SpringMVCPortletProjectConstants.SPRING_FRAMEWORK[0])) {
 					_frameworkDependenciesCombo.removeAllItems();
 
-					if (liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[0])) {
+					if (getLiferayVersion().equals(WorkspaceConstants.LIFERAY_VERSIONS[0])) {
 						_addComboItems(
 							SpringMVCPortletProjectConstants.SPRING_FRAMEWORK_DEPENDENCIES,
 							_frameworkDependenciesCombo);
@@ -82,8 +84,8 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 				else if (value.equals(SpringMVCPortletProjectConstants.SPRING_FRAMEWORK[1])) {
 					_frameworkDependenciesCombo.removeAllItems();
 
-					if (liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[1]) ||
-							liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
+					if (getLiferayVersion().equals(WorkspaceConstants.LIFERAY_VERSIONS[1]) ||
+						getLiferayVersion().equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
 
 						_addComboItems(
 							SpringMVCPortletProjectConstants.SPRING_FRAMEWORK_DEPENDENCIES,
