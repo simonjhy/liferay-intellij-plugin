@@ -57,5 +57,4 @@ public class MavenUtil {
 
 		mavenWriter.write(fileWriter, model);
 	}
-
 }

@@ -38,10 +38,9 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 
 	public SpringMvcPortletModuleWizardStep(WizardContext wizardContext, SpringMVCPortletModuleBuilder builder) {
 		_builder = builder;
-
 		_project = wizardContext.getProject();
 
-		String liferayVersion = getLiferayVersion(_project);
+		String liferayVersion = obtainLiferayVersion(_project);
 
 		if (liferayVersion.isEmpty()) {
 			_liferayVersionCombo.removeAllItems();
@@ -84,7 +83,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 					_frameworkDependenciesCombo.removeAllItems();
 
 					if (liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[1]) ||
-						liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
+							liferayVersion.equals(WorkspaceConstants.LIFERAY_VERSIONS[2])) {
 
 						_addComboItems(
 							SpringMVCPortletProjectConstants.SPRING_FRAMEWORK_DEPENDENCIES,

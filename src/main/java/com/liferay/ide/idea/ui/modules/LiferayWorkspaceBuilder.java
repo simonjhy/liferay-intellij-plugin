@@ -34,13 +34,19 @@ import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.BladeCLI;
 import com.liferay.ide.idea.util.ListUtil;
 
+import com.liferay.ide.idea.util.FileUtil;
+import com.liferay.ide.idea.util.MavenUtil;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import java.io.File;
 
+import java.nio.file.Path;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import javax.swing.JCheckBox;
@@ -49,6 +55,7 @@ import javax.swing.JLabel;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.maven.model.Model;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -249,6 +256,25 @@ public abstract class LiferayWorkspaceBuilder extends ModuleBuilder {
 				config.save();
 			}
 			catch (ConfigurationException ce) {
+			}
+		}
+		else if (_liferayProjectType.equals(LiferayProjectType.LIFERAY_MAVEN_WORKSPACE)) {
+			Path pomFilePath = FileUtil.pathAppend(project.getBasePath(), "pom.xml");
+
+			File pomFile = pomFilePath.toFile();
+
+			if (FileUtil.exists(pomFile)) {
+				try {
+					Model pomModel = MavenUtil.getMavenModel(pomFile);
+
+					Properties properties = pomModel.getProperties();
+
+					properties.setProperty("liferay.bom.version", _targetPlatform);
+
+					MavenUtil.updateMavenPom(pomModel, pomFile);
+				}
+				catch (Exception e) {
+				}
 			}
 		}
 	}

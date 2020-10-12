@@ -31,6 +31,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 
 import com.liferay.ide.idea.core.LiferayIcons;
 import com.liferay.ide.idea.core.LiferayProjectTypeService;
+import com.liferay.ide.idea.core.WorkspaceConstants;
 import com.liferay.ide.idea.util.BladeCLI;
 import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
@@ -140,6 +141,10 @@ public class LiferayModuleBuilder extends ModuleBuilder implements LiferayWorksp
 			sb.append("maven ");
 
 			mavenModule = true;
+		}
+
+		if (CoreUtil.isNullOrEmpty(_liferayVersion)) {
+			_liferayVersion = WorkspaceConstants.DEFAULT_LIFERAY_VERSION;
 		}
 
 		sb.append("-v ");

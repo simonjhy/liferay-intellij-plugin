@@ -83,5 +83,4 @@ public class WorkspaceConstants {
 			put("7.3", new String[] {"7.3.4", "7.3.3-1", "7.3.2-1", "7.3.1-1", "7.3.0-1"});
 		}
 	};
-
 }

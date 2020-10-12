@@ -166,7 +166,24 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode("root", true);
 
-		String liferayVersion = getLiferayVersion(_project);
+		String liferayVersion = obtainLiferayVersion(_project);
+
+		if (liferayVersion.isEmpty()) {
+			_liferayVersionCombo.removeAllItems();
+
+			for (String liferayVersionItem : WorkspaceConstants.LIFERAY_VERSIONS) {
+				_liferayVersionCombo.addItem(liferayVersionItem);
+			}
+
+			_liferayVersionCombo.setSelectedItem(0);
+		}
+		else {
+			_mainPanel.remove(_liferayVersionLabel);
+
+			_mainPanel.remove(_liferayVersionCombo);
+
+			_mainPanel.repaint();
+		}
 
 		if (liferayVersion.isEmpty()) {
 			_liferayVersionCombo.removeAllItems();

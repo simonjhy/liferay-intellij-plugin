@@ -50,6 +50,11 @@ public class LiferayWorkspaceProductTip extends DialogWrapper {
 		setTitle("Update Liferay Workspace Product Setting");
 	}
 
+	@Override
+	public void doCancelAction() {
+		super.doCancelAction();
+	}
+
 	@Nullable
 	@Override
 	protected JComponent createCenterPanel() {
@@ -70,7 +75,7 @@ public class LiferayWorkspaceProductTip extends DialogWrapper {
 
 		Application application = ApplicationManager.getApplication();
 
-		application.invokeAndWait(
+		application.runWriteAction(
 			() -> {
 				LiferayWorkspaceProductDialog liferayWorkspaceProductDialog = new LiferayWorkspaceProductDialog(
 					_project);

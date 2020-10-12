@@ -24,6 +24,8 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.DialogWrapper;
+
+import com.intellij.openapi.ui.ValidationInfo;
 import com.intellij.openapi.vfs.VfsUtil;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
@@ -39,9 +41,10 @@ import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -75,8 +78,6 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 	protected JComponent createCenterPanel() {
 		JPanel dialogPanel = new JPanel(new GridLayout(2, 2));
 
-		getProductVersion(false);
-
 		JLabel productVersionLabel = new JLabel("Product Version:");
 
 		_productVersionComboBox = new ComboBox<>();
@@ -91,7 +92,7 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 			e -> {
 				boolean showAll = showAllProductVersionCheckBox.isSelected();
 
-				getProductVersion(showAll);
+				modifyProductVersion(showAll);
 			});
 
 		dialogPanel.add(productVersionLabel);
@@ -102,19 +103,19 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 
 		dialogPanel.add(showAllProductVersionCheckBox);
 
+		modifyProductVersion(false);
+
 		return dialogPanel;
 	}
 
 	@Override
 	protected void doOKAction() {
-		Application application = ApplicationManager.getApplication();
-
-		application.invokeAndWait(
+		_application.runWriteAction(
 			() -> {
 				try {
-					if (Objects.nonNull(_project)) {
-						final String productKey = (String)_productVersionComboBox.getSelectedItem();
+					final String productKey = (String)_productVersionComboBox.getSelectedItem();
 
+					if (Objects.nonNull(_project)) {
 						Path projectPath = Paths.get(Objects.requireNonNull(_project.getBasePath()));
 
 						Path gradlePropertiesPath = projectPath.resolve("gradle.properties");
@@ -161,39 +162,48 @@ public class LiferayWorkspaceProductDialog extends DialogWrapper {
 				}
 			});
 
-		close(OK_EXIT_CODE);
+		super.doOKAction();
 	}
 
-	protected void getProductVersion(boolean showAll) {
-		Application application = ApplicationManager.getApplication();
+	@Override
+	public void doCancelAction() {
+		super.doCancelAction();
+	}
 
-		application.executeOnPooledThread(
-			new Runnable() {
+	@Nullable
+	@Override
+	protected ValidationInfo doValidate() {
+		if (_productVersionComboBox.getSelectedIndex() == -1) {
+			return new ValidationInfo("Please ");
+		}
 
-				@Override
-				public void run() {
-					List<String> allWorkspaceProducts = Arrays.asList(BladeCLI.getWorkspaceProducts(showAll));
+		return super.doValidate();
+	}
 
-					if (!ListUtil.isEmpty(allWorkspaceProducts)) {
-						_productVersionComboBox.removeAllItems();
-					}
+	protected void modifyProductVersion(boolean showAll) {
+		_application.executeOnPooledThread(
+			() -> {
+				String[] allWorkspaceProducts = BladeCLI.getWorkspaceProducts(showAll);
 
-					allWorkspaceProducts.stream(
-					).forEach(
-						productVersion -> _productVersionComboBox.addItem(productVersion)
-					);
+				if (!ListUtil.isEmpty(allWorkspaceProducts)) {
+					_productVersions.clear();
 
-					int defaultProductVersionIndex = allWorkspaceProducts.indexOf(
-						WorkspaceConstants.DEFAULT_PRODUCT_VERSION);
+					_productVersionComboBox.removeAllItems();
 
-					_productVersionComboBox.setSelectedIndex(
-						(defaultProductVersionIndex == -1) ? 0 : defaultProductVersionIndex);
+					Collections.addAll(_productVersions, allWorkspaceProducts);
 				}
 
+				for (String productVersion : _productVersions) {
+					_productVersionComboBox.addItem(productVersion);
+				}
+
+				_productVersionComboBox.setSelectedIndex(0);
 			});
 	}
 
+	private final Application _application = ApplicationManager.getApplication();
 	private JComboBox<String> _productVersionComboBox;
+	private final List<String> _productVersions = new CopyOnWriteArrayList<>();
 	private final Project _project;
 
 }
