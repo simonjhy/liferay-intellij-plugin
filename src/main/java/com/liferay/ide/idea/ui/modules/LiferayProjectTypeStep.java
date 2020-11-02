@@ -604,7 +604,7 @@ public class LiferayProjectTypeStep extends ModuleWizardStep implements Disposab
 					return false;
 				}
 
-				if (workspaceProvider.isGradleWorkspace()) {
+				if (workspaceProvider.isGradleWorkspace() && workspaceProvider.isFlexibleLiferayWorkspace()) {
 					Map<String, ProductInfo> productInfosMap = LiferayWorkspaceSupport.getProductInfos(project);
 
 					if ((productInfosMap != null) && !productInfosMap.isEmpty()) {
