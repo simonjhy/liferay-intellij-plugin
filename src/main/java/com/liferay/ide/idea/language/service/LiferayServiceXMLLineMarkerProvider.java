@@ -31,7 +31,6 @@ import com.intellij.psi.xml.XmlTokenType;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,67 +42,60 @@ import org.jetbrains.annotations.NotNull;
 public class LiferayServiceXMLLineMarkerProvider extends RelatedItemLineMarkerProvider {
 
 	@Override
-	public void collectNavigationMarkers(
-		@NotNull List<? extends PsiElement> elements, @NotNull Collection<? super RelatedItemLineMarkerInfo<?>> result,
-		boolean forNavigation) {
+	protected void collectNavigationMarkers(
+		@NotNull PsiElement element, @NotNull Collection<? super RelatedItemLineMarkerInfo> result) {
 
-		elements.stream(
-		).forEach(
-			element -> {
-				Project project = element.getProject();
+		Project project = element.getProject();
 
-				Optional<XmlAttribute> nameXmlAttribute = Optional.of(
-					element
-				).filter(
-					XmlToken.class::isInstance
-				).map(
-					XmlToken.class::cast
-				).filter(
-					xmlToken -> XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN.equals(xmlToken.getTokenType())
-				).map(
-					xmlToken -> PsiTreeUtil.getParentOfType(xmlToken, XmlAttribute.class)
-				).filter(
-					xmlAttribute -> Objects.equals("name", xmlAttribute.getLocalName())
-				);
+		Optional<XmlAttribute> nameXmlAttribute = Optional.of(
+			element
+		).filter(
+			XmlToken.class::isInstance
+		).map(
+			XmlToken.class::cast
+		).filter(
+			xmlToken -> XmlTokenType.XML_ATTRIBUTE_VALUE_TOKEN.equals(xmlToken.getTokenType())
+		).map(
+			xmlToken -> PsiTreeUtil.getParentOfType(xmlToken, XmlAttribute.class)
+		).filter(
+			xmlAttribute -> Objects.equals("name", xmlAttribute.getLocalName())
+		);
 
-				nameXmlAttribute.map(
-					xmlAttribute -> PsiTreeUtil.getParentOfType(xmlAttribute, XmlTag.class)
-				).map(
-					PsiElement::getParent
-				).filter(
-					XmlTag.class::isInstance
-				).map(
-					XmlTag.class::cast
-				).filter(
-					parentXmlTag -> Objects.equals("service-builder", parentXmlTag.getLocalName())
-				).ifPresent(
-					serviceBuilderXmlTag -> {
-						XmlAttribute xmlAttribute = nameXmlAttribute.get();
+		nameXmlAttribute.map(
+			xmlAttribute -> PsiTreeUtil.getParentOfType(xmlAttribute, XmlTag.class)
+		).map(
+			PsiElement::getParent
+		).filter(
+			XmlTag.class::isInstance
+		).map(
+			XmlTag.class::cast
+		).filter(
+			parentXmlTag -> Objects.equals("service-builder", parentXmlTag.getLocalName())
+		).ifPresent(
+			serviceBuilderXmlTag -> {
+				XmlAttribute xmlAttribute = nameXmlAttribute.get();
 
-						String entityName = xmlAttribute.getValue();
+				String entityName = xmlAttribute.getValue();
 
-						String packagePath = serviceBuilderXmlTag.getAttributeValue("package-path");
+				String packagePath = serviceBuilderXmlTag.getAttributeValue("package-path");
 
-						if ((entityName != null) && (packagePath != null)) {
-							String targetClassName = packagePath + ".model.impl." + entityName + "Impl";
+				if ((entityName != null) && (packagePath != null)) {
+					String targetClassName = packagePath + ".model.impl." + entityName + "Impl";
 
-							JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+					JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
 
-							PsiClass psiClass = javaPsiFacade.findClass(
-								targetClassName, GlobalSearchScope.allScope(project));
+					PsiClass psiClass = javaPsiFacade.findClass(targetClassName, GlobalSearchScope.allScope(project));
 
-							if (psiClass != null) {
-								NavigationGutterIconBuilder<PsiElement> navigationGutterIconBuilder =
-									NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod);
+					if (psiClass != null) {
+						NavigationGutterIconBuilder<PsiElement> navigationGutterIconBuilder =
+							NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementedMethod);
 
-								navigationGutterIconBuilder.setTargets(Collections.singletonList(psiClass));
-								navigationGutterIconBuilder.setTooltipText("Navigate to Implementation");
+						navigationGutterIconBuilder.setTargets(Collections.singletonList(psiClass));
+						navigationGutterIconBuilder.setTooltipText("Navigate to Implementation");
 
-								result.add(navigationGutterIconBuilder.createLineMarkerInfo(element));
-							}
-						}
+						result.add(navigationGutterIconBuilder.createLineMarkerInfo(element));
 					}
-				);
+				}
 			}
 		);
 	}
