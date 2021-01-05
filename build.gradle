@@ -51,6 +51,9 @@ task downloadXsds(type: Download)
 task verifyBlade392(type: Verify)
 task verifyBladeLatest(type: Verify)
 
+sourceCompatibility = "11"
+targetCompatibility = "11"
+
 String userHome = System.getProperty("user.home")
 
 String gradleHome = System.getProperty("gradle.user.home") ?: System.getenv("GRADLE_USER_HOME") ?: new File(userHome, ".gradle").absolutePath
