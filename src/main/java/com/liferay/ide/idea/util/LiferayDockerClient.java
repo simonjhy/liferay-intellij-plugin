@@ -38,6 +38,7 @@ public class LiferayDockerClient {
 			DefaultDockerClientConfig.createDefaultConfigBuilder();
 
 		createDefaultConfigBuilder.withDockerHost(_getDefaultDockerUrl());
+
 		createDefaultConfigBuilder.withRegistryUrl("https://registry.hub.docker.com/v2/repositories/liferay/portal");
 
 		String dockerCertPath = System.getenv("DOCKER_CERT_PATH");
@@ -72,7 +73,9 @@ public class LiferayDockerClient {
 		String dockerUrl = System.getenv("DOCKER_HOST");
 
 		if (CoreUtil.isNullOrEmpty(dockerUrl)) {
-			if (SystemUtils.IS_OS_UNIX && new File("/var/run/docker.sock").exists()) {
+			File file = new File("/var/run/docker.sock");
+
+			if (SystemUtils.IS_OS_UNIX && file.exists()) {
 				dockerUrl = new String("unix:///var/run/docker.sock");
 			}
 			else {

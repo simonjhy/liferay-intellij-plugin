@@ -24,7 +24,6 @@ import com.google.common.collect.Lists;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.actions.RunConfigurationProducer;
-import com.intellij.execution.configurations.ConfigurationFactory;
 import com.intellij.execution.configurations.ConfigurationType;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
@@ -34,21 +33,17 @@ import com.liferay.blade.gradle.tooling.ProjectInfo;
 import com.liferay.ide.idea.core.LiferayIcons;
 import com.liferay.ide.idea.server.LiferayDockerServerConfigurationProducer;
 import com.liferay.ide.idea.server.LiferayDockerServerConfigurationType;
+import com.liferay.ide.idea.util.GradleUtil;
 import com.liferay.ide.idea.util.LiferayDockerClient;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
 import com.liferay.ide.idea.util.ListUtil;
-
 
 import java.util.List;
 import java.util.Objects;
 
 /**
  * @author Simon Jiang
- */
-import static com.liferay.ide.idea.util.GradleUtil.getModel;
-
-/**
- * @author Simon Jiang
+ * @author Seiphon Wang
  */
 public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction implements LiferayWorkspaceSupport {
 
@@ -64,8 +59,6 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 			ConfigurationType configurationType = producer.getConfigurationType();
 
 			if (Objects.equals(LiferayDockerServerConfigurationType.id, configurationType.getId())) {
-				ConfigurationFactory configurationFactory = producer.getConfigurationFactory();
-
 				RunManager runManager = RunManager.getInstance(project);
 
 				RunnerAndConfigurationSettings configuration = runManager.findConfigurationByTypeAndName(
@@ -73,7 +66,8 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 
 				if (configuration == null) {
 					runManager.addConfiguration(
-						runManager.createConfiguration(project.getName() + "-docker-server", configurationFactory));
+						runManager.createConfiguration(
+							project.getName() + "-docker-server", producer.getConfigurationFactory()));
 				}
 			}
 		}
@@ -82,21 +76,22 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 	@Override
 	protected void beforeTask(Project project) {
 		try (DockerClient dockerClient = LiferayDockerClient.getDockerClient()) {
-			ProjectInfo projectInfo = getModel(ProjectInfo.class, ProjectUtil.guessProjectDir(project));
+			ProjectInfo projectInfo = GradleUtil.getModel(ProjectInfo.class, ProjectUtil.guessProjectDir(project));
 
 			ListContainersCmd listContainersCmd = dockerClient.listContainersCmd();
 
 			listContainersCmd.withNameFilter(Lists.newArrayList(projectInfo.getDockerContainerId()));
+
 			listContainersCmd.withLimit(1);
 
 			List<Container> containers = listContainersCmd.exec();
 
 			if (ListUtil.isNotEmpty(containers)) {
-				Container container = containers.get(0);
+				for (Container container : containers) {
+					RemoveContainerCmd removeContainerCmd = dockerClient.removeContainerCmd(container.getId());
 
-				RemoveContainerCmd removeContainerCmd = dockerClient.removeContainerCmd(container.getId());
-
-				removeContainerCmd.exec();
+					removeContainerCmd.exec();
+				}
 			}
 		}
 		catch (Exception e) {
