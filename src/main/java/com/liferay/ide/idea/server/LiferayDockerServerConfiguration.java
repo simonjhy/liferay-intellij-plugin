@@ -14,13 +14,6 @@
 
 package com.liferay.ide.idea.server;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.ListContainersCmd;
-import com.github.dockerjava.api.command.RemoveContainerCmd;
-import com.github.dockerjava.api.model.Container;
-
-import com.google.common.collect.Lists;
-
 import com.intellij.diagnostic.logging.LogConfigurationPanel;
 import com.intellij.execution.CommonProgramRunConfigurationParameters;
 import com.intellij.execution.ExecutionBundle;
@@ -34,7 +27,6 @@ import com.intellij.execution.configurations.LocatableConfigurationBase;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.configurations.RunProfileState;
 import com.intellij.execution.configurations.RuntimeConfigurationException;
-import com.intellij.execution.configurations.SearchScopeProvider;
 import com.intellij.execution.configurations.SearchScopeProvidingRunProfile;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.util.ProgramParametersUtil;
@@ -61,15 +53,15 @@ import com.intellij.util.xmlb.XmlSerializerUtil;
 import com.liferay.blade.gradle.tooling.ProjectInfo;
 import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.GradleUtil;
-import com.liferay.ide.idea.util.LiferayDockerClient;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
-import com.liferay.ide.idea.util.ListUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.swing.SwingUtilities;
 
 import org.jdom.Element;
 
@@ -90,6 +82,7 @@ public class LiferayDockerServerConfiguration
 		_project = project;
 		_factory = factory;
 		_name = name;
+
 		_javaRunConfigurationModule = new JavaRunConfigurationModule(project, true);
 	}
 
@@ -113,25 +106,16 @@ public class LiferayDockerServerConfiguration
 	}
 
 	@Override
-	public void checkSettingsBeforeRun() throws RuntimeConfigurationException {
-	}
-
-	@Override
 	public LiferayDockerServerConfiguration clone() {
 		LiferayDockerServerConfiguration clone = (LiferayDockerServerConfiguration)super.clone();
 
+		if (CoreUtil.isNullOrEmpty(_liferayDockerServerConfig.dockerContainerId) ||
+			CoreUtil.isNullOrEmpty(_liferayDockerServerConfig.dockerImageId)) {
+
+			_setDockerDetailsToConfiguration();
+		}
+
 		_liferayDockerServerConfig.workspaceLocation = _project.getBasePath();
-
-		try {
-			ProjectInfo projectInfo = GradleUtil.getModel(ProjectInfo.class, ProjectUtil.guessProjectDir(_project));
-
-			if (projectInfo != null) {
-				_liferayDockerServerConfig.dockerImageId = projectInfo.getDockerImageId();
-				_liferayDockerServerConfig.dockerContainerId = projectInfo.getDockerContainerId();
-			}
-		}
-		catch (Exception e) {
-		}
 
 		clone.setConfig(XmlSerializerUtil.createCopy(_liferayDockerServerConfig));
 
@@ -223,34 +207,15 @@ public class LiferayDockerServerConfiguration
 
 		List<String> taskNames = new ArrayList<>();
 
-		try (DockerClient dockerClient = LiferayDockerClient.getDockerClient()) {
-			ListContainersCmd listContainersCmd = dockerClient.listContainersCmd();
-
-			listContainersCmd.withNameFilter(Lists.newArrayList(getDockerContainerId()));
-			listContainersCmd.withLimit(1);
-
-			List<Container> containers = listContainersCmd.exec();
-
-			if (ListUtil.isNotEmpty(containers)) {
-				Container container = containers.get(0);
-
-				RemoveContainerCmd removeContainerCmd = dockerClient.removeContainerCmd(container.getId());
-
-				removeContainerCmd.exec();
-			}
-		}
-		catch (Exception e) {
-			_logger.error(e);
-		}
-
 		taskNames.add("startDockerContainer");
 		taskNames.add("logsDockerContainer");
 
 		settings.setTaskNames(taskNames);
 
-		ExternalSystemRunnableState runnableState =
-			new ExternalSystemRunnableState(
-				settings, getProject(), debugExecutorId.equals(executor.getId()), externalSystemRunConfiguration, env);
+		settings.setScriptParameters("-x createDockerContainer");
+
+		ExternalSystemRunnableState runnableState = new ExternalSystemRunnableState(
+			settings, getProject(), debugExecutorId.equals(executor.getId()), externalSystemRunConfiguration, env);
 
 		copyUserDataTo(runnableState);
 
@@ -350,7 +315,25 @@ public class LiferayDockerServerConfiguration
 		}
 	}
 
-	private static final Logger _logger = Logger.getInstance(LiferayDockerServerConfiguration.class);
+	private void _setDockerDetailsToConfiguration() {
+		SwingUtilities.invokeLater(
+			() -> {
+				try {
+					ProjectInfo projectInfo = GradleUtil.getModel(
+						ProjectInfo.class, ProjectUtil.guessProjectDir(_project));
+
+					if (projectInfo != null) {
+						_liferayDockerServerConfig.dockerImageId = projectInfo.getDockerImageId();
+						_liferayDockerServerConfig.dockerContainerId = projectInfo.getDockerContainerId();
+					}
+				}
+				catch (Exception e) {
+					_logger.warn(e);
+				}
+			});
+	}
+
+	private static final Logger _logger = Logger.getInstance(LiferayDockerServerConfigurationEditor.class);
 
 	private Map<String, String> _envs = new LinkedHashMap<>();
 	private ConfigurationFactory _factory;
