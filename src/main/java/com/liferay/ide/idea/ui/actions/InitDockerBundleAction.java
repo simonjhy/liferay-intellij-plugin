@@ -14,38 +14,31 @@
 
 package com.liferay.ide.idea.ui.actions;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.ListContainersCmd;
-import com.github.dockerjava.api.command.RemoveContainerCmd;
-import com.github.dockerjava.api.model.Container;
-
-import com.google.common.collect.Lists;
-
 import com.intellij.execution.RunManager;
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.actions.RunConfigurationProducer;
-import com.intellij.execution.configurations.ConfigurationFactory;
 import com.intellij.execution.configurations.ConfigurationType;
+import com.intellij.execution.executors.DefaultRunExecutor;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.externalSystem.model.execution.ExternalSystemTaskExecutionSettings;
+import com.intellij.openapi.externalSystem.service.execution.ProgressExecutionMode;
+import com.intellij.openapi.externalSystem.task.TaskCallback;
+import com.intellij.openapi.externalSystem.util.ExternalSystemUtil;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectUtil;
+import com.intellij.util.execution.ParametersListUtil;
 
-import com.liferay.blade.gradle.tooling.ProjectInfo;
 import com.liferay.ide.idea.core.LiferayIcons;
 import com.liferay.ide.idea.server.LiferayDockerServerConfigurationProducer;
 import com.liferay.ide.idea.server.LiferayDockerServerConfigurationType;
-import com.liferay.ide.idea.util.LiferayDockerClient;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
-import com.liferay.ide.idea.util.ListUtil;
-
 
 import java.util.List;
 import java.util.Objects;
 
-/**
- * @author Simon Jiang
- */
-import static com.liferay.ide.idea.util.GradleUtil.getModel;
+import org.gradle.cli.CommandLineParser;
+import org.gradle.cli.ParsedCommandLine;
+
+import org.jetbrains.plugins.gradle.util.GradleConstants;
 
 /**
  * @author Simon Jiang
@@ -64,8 +57,6 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 			ConfigurationType configurationType = producer.getConfigurationType();
 
 			if (Objects.equals(LiferayDockerServerConfigurationType.id, configurationType.getId())) {
-				ConfigurationFactory configurationFactory = producer.getConfigurationFactory();
-
 				RunManager runManager = RunManager.getInstance(project);
 
 				RunnerAndConfigurationSettings configuration = runManager.findConfigurationByTypeAndName(
@@ -73,7 +64,8 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 
 				if (configuration == null) {
 					runManager.addConfiguration(
-						runManager.createConfiguration(project.getName() + "-docker-server", configurationFactory));
+						runManager.createConfiguration(
+							project.getName() + "-docker-server", producer.getConfigurationFactory()));
 				}
 			}
 		}
@@ -81,23 +73,32 @@ public class InitDockerBundleAction extends AbstractLiferayGradleTaskAction impl
 
 	@Override
 	protected void beforeTask(Project project) {
-		try (DockerClient dockerClient = LiferayDockerClient.getDockerClient()) {
-			ProjectInfo projectInfo = getModel(ProjectInfo.class, ProjectUtil.guessProjectDir(project));
+		try {
+			ExternalSystemTaskExecutionSettings settings = new ExternalSystemTaskExecutionSettings();
 
-			ListContainersCmd listContainersCmd = dockerClient.listContainersCmd();
+			CommandLineParser gradleCmdParser = new CommandLineParser();
 
-			listContainersCmd.withNameFilter(Lists.newArrayList(projectInfo.getDockerContainerId()));
-			listContainersCmd.withLimit(1);
+			ParsedCommandLine parsedCommandLine = gradleCmdParser.parse(
+				ParametersListUtil.parse("removeDockerContainer", true));
 
-			List<Container> containers = listContainersCmd.exec();
+			settings.setExternalProjectPath(project.getBasePath());
+			settings.setExternalSystemIdString(GradleConstants.SYSTEM_ID.toString());
+			settings.setTaskNames(parsedCommandLine.getExtraArguments());
 
-			if (ListUtil.isNotEmpty(containers)) {
-				Container container = containers.get(0);
+			ExternalSystemUtil.runTask(
+				settings, DefaultRunExecutor.EXECUTOR_ID, project, GradleConstants.SYSTEM_ID,
+				new TaskCallback() {
 
-				RemoveContainerCmd removeContainerCmd = dockerClient.removeContainerCmd(container.getId());
+					@Override
+					public void onFailure() {
+					}
 
-				removeContainerCmd.exec();
-			}
+					@Override
+					public void onSuccess() {
+					}
+
+				},
+				ProgressExecutionMode.IN_BACKGROUND_ASYNC, true);
 		}
 		catch (Exception e) {
 			_logger.error(e);
