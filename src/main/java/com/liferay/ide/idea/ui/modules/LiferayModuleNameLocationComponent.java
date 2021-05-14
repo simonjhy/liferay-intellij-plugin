@@ -17,7 +17,6 @@ package com.liferay.ide.idea.ui.modules;
 import com.intellij.ide.IdeBundle;
 import com.intellij.ide.highlighter.ModuleFileType;
 import com.intellij.ide.util.projectWizard.AbstractModuleBuilder;
-import com.intellij.ide.util.projectWizard.ProjectWizardUtil;
 import com.intellij.ide.util.projectWizard.WizardContext;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
@@ -246,7 +245,7 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 		if (baseDir != null) {
 			String baseDirPath = baseDir.getPath();
 
-			String moduleName = ProjectWizardUtil.findNonExistingFileName(baseDirPath, "untitled", "");
+			String moduleName = IntellijUtil.findNonExistingModuleName(project, baseDirPath, "untitled");
 
 			setModuleName(moduleName);
 

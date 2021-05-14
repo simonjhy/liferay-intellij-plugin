@@ -29,6 +29,9 @@ import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.util.ArrayUtil;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -37,8 +40,23 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Charles Wu
+ * @author Ethan Sun
  */
 public class IntellijUtil {
+
+	public static String findNonExistingModuleName(Project project, String baseDirPath, String preferredName) {
+		if (isExistingModule(project, preferredName)) {
+			for (int idx = 1;; idx++) {
+				String fileName = (idx >= 1) ? preferredName + idx : preferredName;
+
+				if (!Files.exists(Paths.get(baseDirPath, fileName)) && !isExistingModule(project, fileName)) {
+					return fileName;
+				}
+			}
+		}
+
+		return preferredName;
+	}
 
 	public static VirtualFile getChild(VirtualFile parent, String name) {
 		if (parent == null) {
@@ -164,6 +182,22 @@ public class IntellijUtil {
 
 	public static PsiFile[] getProjectPsiFilesByName(Project project, String name) {
 		return FilenameIndex.getFilesByName(project, name, GlobalSearchScope.projectScope(project));
+	}
+
+	public static boolean isExistingModule(Project project, String preferredName) {
+		ModuleManager moduleManager = ModuleManager.getInstance(project);
+
+		for (Module module : moduleManager.getModules()) {
+			String moduleName = module.getName();
+
+			if (!moduleName.equals(preferredName)) {
+				continue;
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 
 	public static boolean validateExistingModuleName(String moduleName) {
