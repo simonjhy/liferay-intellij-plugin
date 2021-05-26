@@ -16,10 +16,16 @@ package com.liferay.ide.idea.ui.modules.springmvcportlet;
 
 import com.intellij.ide.util.projectWizard.ModuleWizardStep;
 import com.intellij.ide.util.projectWizard.WizardContext;
+import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
+import com.intellij.psi.impl.file.PsiDirectoryFactory;
 
 import com.liferay.ide.idea.core.WorkspaceConstants;
+import com.liferay.ide.idea.util.CoreUtil;
 import com.liferay.ide.idea.util.LiferayWorkspaceSupport;
+
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 
 import java.util.Map;
 import java.util.Objects;
@@ -29,6 +35,7 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 /**
  * @author Terry Jia
@@ -87,11 +94,39 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 					}
 				});
 		}
+
+		_mainPanel.addComponentListener(
+			new ComponentAdapter() {
+
+				@Override
+				public void componentShown(ComponentEvent e) {
+					String packageName = getPackageName();
+
+					if (!CoreUtil.isNullOrEmpty(packageName)) {
+						_packageName.setText(packageName);
+					}
+				}
+
+			});
 	}
 
 	@Override
 	public JComponent getComponent() {
 		return _mainPanel;
+	}
+
+	public String getPackageName() {
+		String moduleName = _builder.getName();
+
+		if (!CoreUtil.isNullOrEmpty(moduleName)) {
+			String packageName = moduleName.replace('-', '.');
+
+			packageName = packageName.replace(' ', '.');
+
+			return packageName.toLowerCase();
+		}
+
+		return moduleName;
 	}
 
 	@Override
@@ -104,6 +139,22 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 		_builder.setFrameworkDependencies(frameworkDependeices.get(_frameworkDependenciesCombo.getSelectedItem()));
 		_builder.setLiferayVersion(_liferayVersion);
 		_builder.setViewType(viewTypes.get(_viewTypeCombo.getSelectedItem()));
+		_builder.setPackageName(_packageName.getText());
+	}
+
+	@Override
+	public boolean validate() throws ConfigurationException {
+		String packageName = _packageName.getText();
+
+		if (!CoreUtil.isNullOrEmpty(packageName)) {
+			PsiDirectoryFactory psiDirectoryFactory = PsiDirectoryFactory.getInstance(Objects.requireNonNull(_project));
+
+			if (!psiDirectoryFactory.isValidPackageName(packageName)) {
+				throw new ConfigurationException(packageName + " is not a valid package name", "Validation Error");
+			}
+		}
+
+		return true;
 	}
 
 	private void _addComboItems(String[] values, JComboBox<String> comboBox) {
@@ -204,6 +255,7 @@ public class SpringMvcPortletModuleWizardStep extends ModuleWizardStep implement
 	private JComboBox<String> _liferayVersionCombo;
 	private JLabel _liferayVersionLabel;
 	private JPanel _mainPanel;
+	private JTextField _packageName;
 	private final Project _project;
 	private JComboBox<String> _viewTypeCombo;
 
