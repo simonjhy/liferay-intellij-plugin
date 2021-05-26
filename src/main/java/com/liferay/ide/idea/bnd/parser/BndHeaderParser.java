@@ -80,6 +80,7 @@ public class BndHeaderParser {
 		psiBuilder.advanceLexer();
 
 		boolean result = _parseSubclause(psiBuilder, true);
+
 		marker.done(BndElementType.ATTRIBUTE);
 
 		return result;
