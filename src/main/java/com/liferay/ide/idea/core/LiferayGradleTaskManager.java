@@ -79,11 +79,44 @@ public class LiferayGradleTaskManager implements GradleTaskManagerExtension {
 			Collectors.toList()
 		);
 
-		CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
+		if (tasks.contains("stopDockerContainer")) {
+			try {
+				GradleConnector gradleConnector = GradleConnector.newConnector();
 
-		_cancellationMap.put(id, cancellationTokenSource);
+				Path projectVirtualFilePath = Paths.get(projectPath);
+
+				gradleConnector.forProjectDirectory(projectVirtualFilePath.toFile());
+
+				ProjectConnection connection = gradleConnector.connect();
+
+				BuildLauncher buildLauncher = connection.newBuild();
+
+				buildLauncher.addArguments(settings.getArguments());
+
+				buildLauncher.forTasks(tasks.toArray(new String[0]));
+
+				GradleProgressListener gradleProgressListener = new GradleProgressListener(listener, id);
+
+				buildLauncher.addProgressListener((ProgressListener)gradleProgressListener);
+
+				buildLauncher.addProgressListener((org.gradle.tooling.events.ProgressListener)gradleProgressListener);
+
+				buildLauncher.setStandardOutput(new OutputWrapper(listener, id, true));
+
+				buildLauncher.setStandardError(new OutputWrapper(listener, id, false));
+
+				buildLauncher.run();
+			}
+			catch (Exception exception) {
+				throw new ExternalSystemException(exception);
+			}
+		}
 
 		if (tasks.contains("startDockerContainer") && tasks.contains("logsDockerContainer")) {
+			CancellationTokenSource cancellationTokenSource = GradleConnector.newCancellationTokenSource();
+
+			_cancellationMap.put(id, cancellationTokenSource);
+
 			try {
 				GradleConnector gradleConnector = GradleConnector.newConnector();
 
