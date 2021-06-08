@@ -77,7 +77,9 @@ public class BndParser implements PsiParser {
 		}
 		else {
 			PsiBuilder.Marker marker = psiBuilder.mark();
+
 			_consumeHeaderValue(psiBuilder);
+
 			marker.error(ManifestBundle.message("manifest.colon.expected"));
 		}
 
@@ -100,7 +102,9 @@ public class BndParser implements PsiParser {
 			}
 			else {
 				PsiBuilder.Marker marker = psiBuilder.mark();
+
 				_consumeHeaderValue(psiBuilder);
+
 				marker.error(ManifestBundle.message("manifest.header.expected"));
 			}
 		}

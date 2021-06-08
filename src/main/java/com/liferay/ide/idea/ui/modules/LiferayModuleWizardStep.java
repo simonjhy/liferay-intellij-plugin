@@ -282,20 +282,11 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 	public boolean validate() throws ConfigurationException {
 		String validationTitle = "Validation Error";
 
-		if (CoreUtil.isNullOrEmpty(getSelectedType())) {
+		String type = getSelectedType();
+
+		if (CoreUtil.isNullOrEmpty(type)) {
 			throw new ConfigurationException("Please click one of the items to select a template", validationTitle);
 		}
-
-		ProjectManager projectManager = ProjectManager.getInstance();
-
-		Project workspaceProject = projectManager.getOpenProjects()[0];
-
-		String packageNameValue = getPackageName();
-		String classNameValue = getClassName();
-		PsiDirectoryFactory psiDirectoryFactory = PsiDirectoryFactory.getInstance(workspaceProject);
-		PsiNameHelper psiNameHelper = PsiNameHelper.getInstance(workspaceProject);
-
-		String type = getSelectedType();
 
 		if (type.equals("js-theme") || type.equals("js-widget")) {
 			throw new ConfigurationException(
@@ -303,6 +294,14 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 					"import here.",
 				validationTitle);
 		}
+
+		ProjectManager projectManager = ProjectManager.getInstance();
+
+		Project workspaceProject = projectManager.getOpenProjects()[0];
+
+		PsiDirectoryFactory psiDirectoryFactory = PsiDirectoryFactory.getInstance(workspaceProject);
+
+		PsiNameHelper psiNameHelper = PsiNameHelper.getInstance(workspaceProject);
 
 		if (LiferayWorkspaceSupport.isValidMavenWorkspaceProject(workspaceProject)) {
 			if (Objects.equals(type, "form-field")) {
@@ -346,8 +345,10 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 			throw new ConfigurationException("Unable to get supported Liferay version", validationTitle);
 		}
 
+		String packageNameValue = getPackageName();
+
 		if (CoreUtil.isNullOrEmpty(packageNameValue)) {
-			LiferayModuleBuilder liferayModuleBuilder = (LiferayModuleBuilder)_builder;
+			LiferayModuleBuilder liferayModuleBuilder = _builder;
 
 			String packageName = liferayModuleBuilder.getPackageName();
 
@@ -369,6 +370,8 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 		else if (!psiDirectoryFactory.isValidPackageName(packageNameValue)) {
 			throw new ConfigurationException(packageNameValue + " is not a valid package name", validationTitle);
 		}
+
+		String classNameValue = getClassName();
 
 		if (!CoreUtil.isNullOrEmpty(classNameValue) && !psiNameHelper.isQualifiedName(classNameValue)) {
 			throw new ConfigurationException(classNameValue + " is not a valid java class name", validationTitle);
@@ -443,7 +446,7 @@ public class LiferayModuleWizardStep extends ModuleWizardStep implements Liferay
 					}
 				}
 			}
-			catch (IOException ioe) {
+			catch (IOException ioException) {
 			}
 		}
 	}

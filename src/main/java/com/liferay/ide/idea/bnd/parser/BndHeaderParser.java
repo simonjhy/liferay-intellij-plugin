@@ -151,6 +151,7 @@ public class BndHeaderParser {
 			}
 			else {
 				IElementType lastToken = psiBuilder.getTokenType();
+
 				psiBuilder.advanceLexer();
 
 				if ((psiBuilder.getTokenType() == BndTokenType.NEWLINE) &&
