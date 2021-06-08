@@ -55,7 +55,7 @@ public class BndParser implements PsiParser {
 		return builder.getTreeBuilt();
 	}
 
-	private static void _consumeHeaderValue(PsiBuilder psiBuilder) {
+	private void _consumeHeaderValue(PsiBuilder psiBuilder) {
 		while (!psiBuilder.eof() && !HEADER_END_TOKENS.contains(psiBuilder.getTokenType())) {
 			psiBuilder.advanceLexer();
 		}

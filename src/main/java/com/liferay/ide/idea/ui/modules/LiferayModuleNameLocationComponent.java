@@ -303,7 +303,7 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 		return true;
 	}
 
-	private static String _getDefaultBaseDir(WizardContext wizardContext, LiferayNamePathComponent namePathComponent) {
+	private String _getDefaultBaseDir(WizardContext wizardContext, LiferayNamePathComponent namePathComponent) {
 		if (wizardContext.isCreatingNewProject()) {
 			return namePathComponent.getPath();
 		}
