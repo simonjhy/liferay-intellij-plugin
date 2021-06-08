@@ -175,7 +175,7 @@ public class AuiTagAttributeValueCompletionContributor extends CompletionContrib
 					}
 				}
 			}
-			catch (DocumentException de) {
+			catch (DocumentException documentException) {
 			}
 		}
 

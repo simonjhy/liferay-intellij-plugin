@@ -418,13 +418,13 @@ public class LiferayModuleNameLocationComponent implements LiferayWorkspaceSuppo
 	}
 
 	private boolean _validateModulePaths() throws ConfigurationException {
-		String moduleName = _getModuleName();
-
 		String moduleFileDirectory = _moduleFileLocation.getText();
 
 		if (moduleFileDirectory.length() == 0) {
 			throw new ConfigurationException("Enter module file location");
 		}
+
+		String moduleName = _getModuleName();
 
 		if (moduleName.length() == 0) {
 			throw new ConfigurationException("Enter a module name");
